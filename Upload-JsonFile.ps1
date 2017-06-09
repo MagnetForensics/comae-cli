@@ -93,7 +93,7 @@ if ($BufferSize) {
 
     do {
 
-        $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400
+        $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
     } while ($Response.StatusCode -ne 200)
 

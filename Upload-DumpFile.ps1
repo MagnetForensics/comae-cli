@@ -74,13 +74,13 @@ while ($BytesRead = $FileStream.Read($Buffer, 0, $BufferSize)) {
 
     try {
 
-        Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400
+        Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
     }
     catch [System.Net.WebException] {
 
         do {
 
-            $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400
+            $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
         } while ($Response.StatusCode -ne 200)
     }

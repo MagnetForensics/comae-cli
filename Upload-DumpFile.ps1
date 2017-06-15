@@ -1,4 +1,4 @@
-Param(
+﻿Param(
 
     [Parameter(Mandatory = $True)] [string] $InFile,
     [Parameter(Mandatory = $True)] [string] $Key
@@ -8,6 +8,19 @@ if ((Test-Path $InFile) -ne $True) {
 
     Write-Host "Please provides a snapshot to upload to Comae Stardust Platform using -InFile and -Key parameters." -Foregroundcolor Red
     Exit 1
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 5) {
+
+    $File = $InFile
+    $Archive = $InFile + ".zip"
+
+    Compress-Archive -LiteralPath $File -DestinationPath $Archive
+
+    if ((Test-Path $Archive) -eq $True) {
+
+        $InFile = $Archive
+    }
 }
 
 $1MB = 1024 * 1024

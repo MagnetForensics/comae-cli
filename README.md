@@ -9,8 +9,14 @@ This repository contains a set of PowerShell cmdlets for developers and administ
 
 ## Features
 
-* Upload management
-  * Upload your snapshot `Send-ComaeDumpFile` or metadata `Send-ComaeSnapshot` directly to the Comae Stardust platform.
+* Create
+  * Create your dump file `New-ComaeDumpFile` or snapshot `New-ComaeSnapshot`.
+
+* Upload
+  * Upload your dump file `Send-ComaeDumpFile` or snapshot `Send-ComaeSnapshot` directly to the Comae Stardust platform.
+
+* Create and Upload
+  * Create and upload your dump file `Send-ComaeDumpFile` or snapshot `Send-ComaeSnapshot` directly to the Comae Stardust platform.
 
 For detail descriptions and examples of the cmdlets, type
 * ```help comae``` to get all the cmdlets.
@@ -18,8 +24,47 @@ For detail descriptions and examples of the cmdlets, type
 
 ## Installation
 
-You can also find the standalone installers for all the versions at [Downloads](https://github.com/comaeio/Stardust-PowerShell/releases)
+```powershell
+Import-Module .\Comae.ps1
+```
 
+## Using Comae Stardust PowerShell
+
+#### Create dump file
+
+```powershell
+New-ComaeDumpFile -Directory "C:\Comae-CrashDumps"
+```
+
+#### Upload dump file
+
+```powershell
+Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps\FileName.dmp" -ItemType "File"
+```
+
+#### Create and upload dump file
+
+```powershell
+Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps" -ItemType "Directory"
+```
+
+#### Create snapshot
+
+```powershell
+New-ComaeSnapshot -Directory "C:\Comae-Snapshots"
+```
+
+#### Upload snapshot
+
+```powershell
+Send-ComaeSnapshot -Key "" -Path "C:\Comae-Snapshots\FileName.json.zip" -ItemType "File"
+```
+
+#### Create and upload snapshot
+
+```powershell
+Send-ComaeSnapshot -Key "" -Path "C:\Comae-Snapshots" -ItemType "Directory"
+```
 
 ### Source Code
 

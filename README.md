@@ -30,39 +30,29 @@ Import-Module .\Comae.ps1
 
 ## Using Comae Stardust PowerShell
 
-#### Create dump file
+#### Dump files
 
 ```powershell
+# Create dump file
 New-ComaeDumpFile -Directory "C:\Comae-CrashDumps"
-```
 
-#### Upload dump file
-
-```powershell
+# Upload dump file
 Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps\FileName.dmp" -ItemType "File"
-```
 
-#### Create and upload dump file
-
-```powershell
+# Create and upload dump file
 Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps" -ItemType "Directory"
 ```
 
-#### Create snapshot
+#### Snapshots
 
 ```powershell
+# Create snapshot
 New-ComaeSnapshot -Directory "C:\Comae-Snapshots"
-```
 
-#### Upload snapshot
-
-```powershell
+# Upload snapshot
 Send-ComaeSnapshot -Key "" -Path "C:\Comae-Snapshots\FileName.json.zip" -ItemType "File"
-```
 
-#### Create and upload snapshot
-
-```powershell
+# Create and upload snapshot
 Send-ComaeSnapshot -Key "" -Path "C:\Comae-Snapshots" -ItemType "Directory"
 ```
 

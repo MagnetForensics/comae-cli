@@ -119,12 +119,24 @@ Content-Type: application/octet-stream
 }
 
 Function New-ComaeDumpFile(
-    [Parameter(Mandatory = $True)] [string] $Path
+    [Parameter(Mandatory = $True)] [string] $Directory
     )
 {
+    if ((Test-Path $Directory) -ne $True) {
+
+        New-Item $Directory -ItemType "Directory"
+    }
+
+    $DateTime = Get-Date
+
+    $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
+    $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
+
+    $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.dmp"
+
     Write-Output "Launching DumpIt.exe..."
 
-    .\DumpIt.exe /quiet /output $Path
+    .\DumpIt.exe /quiet /output $DumpFile
 }
 
 Function Send-ComaeDumpFile(

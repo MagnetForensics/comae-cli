@@ -10,7 +10,7 @@ This repository contains a set of PowerShell cmdlets for developers and administ
 ## Features
 
 * Upload management
-  * Upload your snapshot `Upload-ComaeDumpFile` or metadata `Upload-ComaeSnapshot` directly to the Comae Stardust platform.
+  * Upload your snapshot `Send-ComaeDumpFile` or metadata `Send-ComaeSnapshot` directly to the Comae Stardust platform.
 
 For detail descriptions and examples of the cmdlets, type
 * ```help comae``` to get all the cmdlets.

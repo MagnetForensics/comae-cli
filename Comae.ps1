@@ -16,7 +16,7 @@
 
     Write-Output "Launching DumpIt.exe..."
 
-    .\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/all /archive /snapshot $SnapshotDirectory""
+    .\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""
 }
 
 Function Send-ComaeSnapshot(
@@ -43,7 +43,7 @@ Function Send-ComaeSnapshot(
 
         Write-Output "Launching DumpIt.exe..."
 
-        .\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/all /archive /snapshot $SnapshotDirectory""
+        .\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""
 
         $SnapshotFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.json.zip"
     }

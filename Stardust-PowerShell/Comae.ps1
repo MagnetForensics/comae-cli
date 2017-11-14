@@ -302,3 +302,48 @@ Content-Type: application/octet-stream
 
     $FileStream.Close()
 }
+
+Function Convert-DumpFileToSnapshot(
+    [Parameter(Mandatory = $True)] [string] $FilePath,
+    [Parameter(Mandatory = $True)] [string] $Directory,
+    [Parameter(Mandatory = $False)] [string] $SymbolPath,
+    [Parameter(Mandatory = $False)] [string] $SymbolServer
+    )
+{
+    if ((Test-Path $FilePath) -ne $True) {
+
+        Write-Error "Could not find dump file '$FilePath'"
+
+        Return 1
+    }
+
+    if ((Test-Path $Directory) -ne $True) {
+
+        Write-Error "Could not find directory '$Directory'"
+
+        Return 1
+    }
+
+    if (!$SymbolPath) {
+
+        $SymbolPath = "C:\Symbols"
+    }
+
+    if (!$SymbolServer) {
+
+        $SymbolServer = "https://msdl.microsoft.com/download/symbols"
+    }
+
+    $FileName = (Get-Item $FilePath).BaseName
+
+    $DateTime = Get-Date
+
+    $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
+    $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
+
+    $SnapshotDirectory = "$Directory\$FileName-$Date-$Time"
+
+    Write-Output "Launching Dmp2Json.exe..."
+
+    .\Dmp2Json.exe /Y srv*$SymbolPath*$SymbolServer /Z $FilePath /C "/all /archive /snapshot $SnapshotDirectory"
+}

@@ -53,16 +53,16 @@ Function Send-ComaeSnapshot(
     }
     else {
 
-        Write-Host "Please provide -ItemType parameter as Directory or File." -Foregroundcolor Red
+        Write-Error "Please provide -ItemType parameter as Directory or File."
 
-        Exit 1
+        Return 1
     }
 
     if ((Test-Path $SnapshotFile) -ne $True) {
 
-        Write-Host "Could not find snapshot file '$SnapshotFile'" -Foregroundcolor Red
+        Write-Error "Could not find snapshot file '$SnapshotFile'"
 
-        Exit 1
+        Return 1
     }
 
     $FileName = Split-Path $SnapshotFile -Leaf
@@ -171,16 +171,16 @@ Function Send-ComaeDumpFile(
     }
     else {
 
-        Write-Host "Please provide -ItemType parameter as Directory or File." -Foregroundcolor Red
+        Write-Error "Please provide -ItemType parameter as Directory or File."
 
-        Exit 1
+        Return 1
     }
 
     if ((Test-Path $DumpFile) -ne $True) {
 
-        Write-Host "Could not find dump file '$DumpFile'" -Foregroundcolor Red
+        Write-Error "Could not find dump file '$DumpFile'"
 
-        Exit 1
+        Return 1
     }
 
     if ($PSVersionTable.PSVersion.Major -ge 5) {

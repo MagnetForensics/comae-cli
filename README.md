@@ -54,6 +54,12 @@ Send-ComaeSnapshot -Key "" -Path "C:\Comae-Snapshots\FileName.json.zip" -ItemTyp
 
 # Create and upload snapshot
 Send-ComaeSnapshot -Key "" -Path "C:\Comae-Snapshots" -ItemType "Directory"
+
+# Convert dump file to snapshot
+Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directory "C:\Comae-Snapshots"
+Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directory "C:\Comae-Snapshots" -SymbolPath "C:\Symbols"
+Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directory "C:\Comae-Snapshots" -SymbolServer "http://msdl.microsoft.com/download/symbols"
+Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directory "C:\Comae-Snapshots" -SymbolPath "C:\Symbols" -SymbolServer "http://msdl.microsoft.com/download/symbols"
 ```
 
 ### Source Code

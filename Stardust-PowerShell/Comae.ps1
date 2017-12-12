@@ -119,7 +119,8 @@ Content-Type: application/octet-stream
 }
 
 Function New-ComaeDumpFile(
-    [Parameter(Mandatory = $True)] [string] $Directory
+    [Parameter(Mandatory = $True)] [string] $Directory,
+    [Parameter(Mandatory = $False)] [switch] $IsCompress
     )
 {
     if ((Test-Path $Directory) -ne $True) {
@@ -132,17 +133,29 @@ Function New-ComaeDumpFile(
     $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
     $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
 
-    $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.dmp"
+    if ($IsCompress) {
+
+        $Extension = "zdmp"
+        $Compression = "/compress"
+    }
+    else {
+
+        $Extension = "dmp"
+        $Compression = ""
+    }
+
+    $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.$Extension"
 
     Write-Output "Launching DumpIt.exe..."
 
-    .\DumpIt.exe /quiet /output $DumpFile
+    .\DumpIt.exe /quiet $Compression /output $DumpFile
 }
 
 Function Send-ComaeDumpFile(
     [Parameter(Mandatory = $True)] [string] $Key,
     [Parameter(Mandatory = $True)] [string] $Path,
-    [Parameter(Mandatory = $True)] [string] $ItemType
+    [Parameter(Mandatory = $True)] [string] $ItemType,
+    [Parameter(Mandatory = $False)] [switch] $IsCompress
     )
 {
     if ($ItemType -eq "Directory") {
@@ -159,11 +172,22 @@ Function Send-ComaeDumpFile(
         $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
         $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
 
-        $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.dmp"
+        if ($IsCompress) {
+
+            $Extension = "zdmp"
+            $Compression = "/compress"
+        }
+        else {
+
+            $Extension = "dmp"
+            $Compression = ""
+        }
+
+        $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.$Extension"
 
         Write-Output "Launching DumpIt.exe..."
 
-        .\DumpIt.exe /quiet /output $DumpFile
+        .\DumpIt.exe /quiet $Compression /output $DumpFile
     }
     elseif ($ItemType -eq "File") {
 

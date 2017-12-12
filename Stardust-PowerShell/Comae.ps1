@@ -359,6 +359,18 @@ Function Convert-DumpFileToSnapshot(
     }
 
     $FileName = (Get-Item $FilePath).BaseName
+    $Extension = (Get-Item $FilePath).Extension
+
+    if ($Extension -eq ".zdmp") {
+
+        $DecompressedDumpFile = (Split-Path $FilePath) + "\" + "$FileName.dmp"
+
+        Write-Output "Launching Z2Dmp.exe..."
+
+        .\Z2Dmp.exe $FilePath $DecompressedDumpFile
+
+        $FilePath = $DecompressedDumpFile
+    }
 
     $DateTime = Get-Date
 

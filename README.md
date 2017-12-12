@@ -35,12 +35,14 @@ Import-Module .\Comae.ps1
 ```powershell
 # Create dump file
 New-ComaeDumpFile -Directory "C:\Comae-CrashDumps"
+New-ComaeDumpFile -Directory "C:\Comae-CrashDumps" -IsCompress
 
 # Upload dump file
 Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps\FileName.dmp" -ItemType "File"
 
 # Create and upload dump file
 Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps" -ItemType "Directory"
+Send-ComaeDumpFile -Key "" -Path "C:\Comae-CrashDumps" -ItemType "Directory" -IsCompress
 ```
 
 #### Snapshots

@@ -64,6 +64,12 @@ Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directo
 Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directory "C:\Comae-Snapshots" -SymbolPath "C:\Symbols" -SymbolServer "http://msdl.microsoft.com/download/symbols"
 ```
 
+# Convert & Upload Multiple Snapshots
+```
+Get-ChildItem -Path C:\DumpFiles -File | ForEach-Object { Convert-DumpFileToSnapshot -FilePath $_.FullName -Directory "C:\Snapshots" }
+Get-ChildItem -Path C:\Snapshots -File | ForEach-Object { Send-ComaeSnapshot -Key "" -Path $_.FullName -ItemType "File" }
+```
+
 ### Source Code
 
 1. Download the source code from GitHub repo

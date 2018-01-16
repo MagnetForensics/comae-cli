@@ -65,7 +65,7 @@ Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directo
 ```
 
 # Convert & Upload Multiple Snapshots
-```
+```powershell
 Get-ChildItem -Path C:\DumpFiles -File | ForEach-Object { Convert-DumpFileToSnapshot -FilePath $_.FullName -Directory "C:\Snapshots" }
 Get-ChildItem -Path C:\Snapshots -File | ForEach-Object { Send-ComaeSnapshot -Key "" -Path $_.FullName -ItemType "File" }
 ```

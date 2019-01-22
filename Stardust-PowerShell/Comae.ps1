@@ -1,4 +1,34 @@
-﻿Function New-ComaeSnapshot(
+﻿Function Get-ComaeAPIKey(
+    [Parameter(Mandatory = $True)] [string] $ClientId,
+    [Parameter(Mandatory = $True)] [string] $ClientSecret
+    )
+{
+    $Headers = @{
+        "Content-Type" = "application/json"
+        "Cache-Control" = "no-cache"
+    }
+
+    $Body = @{
+        "grant_type" = "client_credentials"
+        "client_id" = $ClientId
+        "client_secret" = $ClientSecret
+        "audience" = "JHYFRulOwjLslg87tUt4bCT8i4O3yBsm"
+    }
+
+    $Key = ""
+
+    $Uri = "https://comae.auth0.com/oauth/token"
+
+    $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body ($Body|ConvertTo-Json) -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
+
+    if ($Response.StatusCode -eq 200) {
+        $Key = ($Response.Content | ConvertFrom-JSON).access_token
+    }
+
+    Return $Key
+}
+
+Function New-ComaeSnapshot(
     [Parameter(Mandatory = $True)] [string] $Directory
     )
 {
@@ -20,7 +50,7 @@
 }
 
 Function Send-ComaeSnapshot(
-    [Parameter(Mandatory = $True)] [string] $Key,
+    [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType
     )
@@ -152,7 +182,7 @@ Function New-ComaeDumpFile(
 }
 
 Function Send-ComaeDumpFile(
-    [Parameter(Mandatory = $True)] [string] $Key,
+    [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
     [Parameter(Mandatory = $False)] [switch] $IsCompress

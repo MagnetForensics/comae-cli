@@ -18,7 +18,7 @@ if (Test-Path -Path Comae-Toolkit) {
 
 $token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
 
-$postParams = @{token=$token;id=$id}
+$postParams = @{token=$token}
 $Uri = "https://" + $hostname + "/tools/download"
 Invoke-WebRequest -Uri $Uri -Method POST -OutFile Comae-Toolkit.zip -Body $postParams 
 

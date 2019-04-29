@@ -179,6 +179,8 @@ Function New-ComaeDumpFile(
     Write-Output "Launching DumpIt.exe..."
 
     .\DumpIt.exe /quiet $Compression /output $DumpFile
+	
+    $DumpFile
 }
 
 Function Send-ComaeDumpFile(
@@ -237,17 +239,18 @@ Function Send-ComaeDumpFile(
         Return 1
     }
 
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-
-        $ArchiveFile = $DumpFile + ".zip"
-
-        Compress-Archive -LiteralPath $DumpFile -DestinationPath $ArchiveFile
-
-        if ((Test-Path $ArchiveFile) -eq $True) {
-
-            $DumpFile = $ArchiveFile
-        }
-    }
+# This does not work if the file is bigger than 2GB.
+#     if (($PSVersionTable.PSVersion.Major -ge 5) -and (!$IsCompress)) {
+# 
+#         $ArchiveFile = $DumpFile + ".zip"
+# 
+#         Compress-Archive -LiteralPath $DumpFile -DestinationPath $ArchiveFile
+# 
+#         if ((Test-Path $ArchiveFile) -eq $True) {
+# 
+#             $DumpFile = $ArchiveFile
+#         }
+#     }
 
     $1MB = 1024 * 1024
 

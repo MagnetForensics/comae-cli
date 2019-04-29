@@ -1,4 +1,6 @@
-﻿Function Get-ComaeAPIKey(
+﻿$hostname = "api.comae.io"
+
+Function Get-ComaeAPIKey(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret
     )
@@ -32,6 +34,16 @@ Function New-ComaeSnapshot(
     [Parameter(Mandatory = $True)] [string] $Directory
     )
 {
+    if ((Test-Path  '.\DumpIt.exe') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\DumpIt.exe'."
+        Return 1
+    }
+
+    if ((Test-Path  '.\Dmp2Json.exe') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\Dmp2Json.exe'."
+        Return 1
+    }
+
     if ((Test-Path $Directory) -ne $True) {
 
         New-Item $Directory -ItemType "Directory"
@@ -56,7 +68,10 @@ Function Send-ComaeSnapshot(
     )
 {
     if ($ItemType -eq "Directory") {
-
+        if ((Test-Path  '.\DumpIt.exe') -ne $True) {
+          Write-Error "This script needs to be in the same directory as '.\DumpIt.exe'."
+            Return 1
+       }
         $Directory = $Path
 
         if ((Test-Path $Directory) -ne $True) {
@@ -134,7 +149,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://api.comae.io/v1/upload/json"
+        $Uri = "https://" + $hostname + "/v1/upload/json"
 
         Write-Output "Uploading $SnapshotFile..."
 
@@ -153,8 +168,12 @@ Function New-ComaeDumpFile(
     [Parameter(Mandatory = $False)] [switch] $IsCompress
     )
 {
-    if ((Test-Path $Directory) -ne $True) {
+    if ((Test-Path  '.\DumpIt.exe') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\DumpIt.exe'."
+        Return 1
+    }
 
+    if ((Test-Path $Directory) -ne $True) {
         New-Item $Directory -ItemType "Directory"
     }
 
@@ -164,12 +183,10 @@ Function New-ComaeDumpFile(
     $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
 
     if ($IsCompress) {
-
         $Extension = "zdmp"
         $Compression = "/compress"
     }
     else {
-
         $Extension = "dmp"
         $Compression = ""
     }
@@ -190,8 +207,12 @@ Function Send-ComaeDumpFile(
     [Parameter(Mandatory = $False)] [switch] $IsCompress
     )
 {
-    if ($ItemType -eq "Directory") {
 
+    if ($ItemType -eq "Directory") {
+        if ((Test-Path  '.\DumpIt.exe') -ne $True) {
+          Write-Error "This script needs to be in the same directory as  '.\DumpIt.exe' script."
+            Return 1
+       }
         $Directory = $Path
 
         if ((Test-Path $Directory) -ne $True) {
@@ -312,7 +333,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://api.comae.io/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileName&chunks=$NumberOfChunks"
+        $Uri = "https://" + $hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileName&chunks=$NumberOfChunks"
 
         try {
 
@@ -336,7 +357,7 @@ Content-Type: application/octet-stream
         Write-Progress -Activity "Uploading $DumpFile..." -Status "$CurrentInMB MB / $FileSizeInMB MB" -PercentComplete (($CurrentInBytes / $FileSizeInBytes) * 100)
     }
 
-    $Uri = "https://api.comae.io/v1/upload/dump/completed"
+    $Uri = "https://" + $hostname + "/v1/upload/dump/completed"
 
     $Body = @{
         "id" = "$UniqueFileId";
@@ -358,6 +379,8 @@ Content-Type: application/octet-stream
     $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
     $FileStream.Close()
+
+    $DumpFile
 }
 
 Function Convert-DumpFileToSnapshot(
@@ -367,6 +390,16 @@ Function Convert-DumpFileToSnapshot(
     [Parameter(Mandatory = $False)] [string] $SymbolServer
     )
 {
+    if ((Test-Path  '.\Z2Dmp.exe') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\Z2Dmp.exe'."
+        Return 1
+    }
+
+    if ((Test-Path  '.\Dmp2Json.exe') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\Dmp2Json.exe'."
+        Return 1
+    }
+
     if ((Test-Path $FilePath) -ne $True) {
 
         Write-Error "Could not find dump file '$FilePath'"
@@ -415,4 +448,68 @@ Function Convert-DumpFileToSnapshot(
     Write-Output "Launching Dmp2Json.exe..."
 
     .\Dmp2Json.exe /Y srv*$SymbolPath*$SymbolServer /Z $FilePath /C "/all /archive /snapshot $SnapshotDirectory"
+}
+
+Function Invoke-ComaeAzVMWinAnalyze(
+    [Parameter(Mandatory = $True)] [string] $ClientId,
+    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
+    [Parameter(Mandatory = $True)] [string] $VMName
+) {
+    if ((Test-Path  '.\ComaeAzureIR.ps1') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\ComaeAzureIR.ps1'."
+        Return $False
+    }
+    
+    if (!(Get-Module -ListAvailable -Name Az.Compute)) {
+        Write-Error "You need to install Azure PowerShell Az module. (Install-Module -Name Az -AllowClobber)"
+        Return $False
+    }
+
+    if ((Get-AzContext) -eq $null) { Connect-AzAccount }
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeAzureIR.ps1' -Parameter @{ClientId = $ClientId; ClientSecret = $ClientSecret}
+}
+
+Function Invoke-ComaeAzVMLinAnalyze(
+    [Parameter(Mandatory = $True)] [string] $ClientId,
+    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
+    [Parameter(Mandatory = $True)] [string] $VMName
+) {
+    Write-Error "This current cmdlet is not implemented yet."
+    # if ((Test-Path  '.\ComaeAzureIR.sh') -ne $True) {
+    # 	Write-Error "This script needs to be in the same directory as '.\ComaeAzureIR.sh'."
+    #     Return 1
+    # }
+    
+    # az vm run-command invoke -g myResourceGroup -n myVm --command-id RunShellScript --scripts "sudo apt-get update && sudo apt-get install -y nginx"
+    # if ((Get-AzContext) -eq $null) { Connect-AzAccount }
+    # Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptPath '.\ComaeAzureIR.sh' -Parameter @{ClientId = $ClientId; ClientSecret = $ClientSecret}
+}
+
+Function Invoke-ComaeAwsVMWinAnalyze(
+    [Parameter(Mandatory = $True)] [string] $ClientId,
+    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $AccessKey,
+    [Parameter(Mandatory = $True)] [string] $SecretKey,
+    [Parameter(Mandatory = $True)] [string] $Region,
+    [Parameter(Mandatory = $True)] [string] $InstanceId,
+    [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
+    [Parameter(Mandatory = $True)] [string] $VMName
+) {
+    if ((Test-Path  '.\ComaeAwsIR.ps1') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\ComaeAwsIR.ps1'."
+        Return 1
+    }
+    if (!(Get-Module -ListAvailable -Name AWSPowerShell)) {
+        Write-Error "You need to install AWS Tools for PowerShell. (Install-Module -Name AWSPowerShell.NetCore -AllowClobber)"
+        Return $False
+    }
+    
+    Set-AWSCredentials –AccessKey $AccessKey –SecretKey $SecretKey
+    Set-DefaultAWSRegion -Region $Region
+
+    $commandId = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter @{'commands'=@('dir C:\Users', 'dir C:\')}
+
+    Get-SSMCommandInvocation -CommandId $commandId -Details $true | Select-Object -ExpandProperty CommandPlugins
 }

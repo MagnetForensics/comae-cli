@@ -456,8 +456,8 @@ Function Invoke-ComaeAzVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName
 ) {
-    if ((Test-Path  '.\ComaeAzureIR.ps1') -ne $True) {
-        Write-Error "This script needs to be in the same directory as '.\ComaeAzureIR.ps1'."
+    if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
         Return $False
     }
     
@@ -477,8 +477,8 @@ Function Invoke-ComaeAzVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $VMName
 ) {
     Write-Error "This current cmdlet is not implemented yet."
-    # if ((Test-Path  '.\ComaeAzureIR.sh') -ne $True) {
-    # 	Write-Error "This script needs to be in the same directory as '.\ComaeAzureIR.sh'."
+    # if ((Test-Path  '.\ComaeRespond.sh') -ne $True) {
+    # 	Write-Error "This script needs to be in the same directory as '.\ComaeRespond.sh'."
     #     Return 1
     # }
     
@@ -493,23 +493,74 @@ Function Invoke-ComaeAwsVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $AccessKey,
     [Parameter(Mandatory = $True)] [string] $SecretKey,
     [Parameter(Mandatory = $True)] [string] $Region,
-    [Parameter(Mandatory = $True)] [string] $InstanceId,
-    [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
-    [Parameter(Mandatory = $True)] [string] $VMName
+    [Parameter(Mandatory = $True)] [string] $InstanceId
 ) {
-    if ((Test-Path  '.\ComaeAwsIR.ps1') -ne $True) {
-        Write-Error "This script needs to be in the same directory as '.\ComaeAwsIR.ps1'."
+    if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
         Return 1
     }
     if (!(Get-Module -ListAvailable -Name AWSPowerShell)) {
         Write-Error "You need to install AWS Tools for PowerShell. (Install-Module -Name AWSPowerShell.NetCore -AllowClobber)"
         Return $False
     }
-    
+
+    # Create a copy of ComaeRespond.ps1 on the remote machine's Temp folder.
+    $content = Get-Content .\ComaeRespond.ps1 -Raw
+    $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($content))
+    $Parameter = @{'commands'=@("`$encoded = '$b64'", 
+                                '$content = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($encoded))',
+                                '$tmpPath = [System.IO.Path]::GetTempPath()',
+                                '$tmpFileName = "comae" + $(Get-Date -Format yyyy-MM-dd) + ".ps1"'
+                                '$tmpFile = $tmpPath + $tmpFileName',
+                                '$content | Out-File $tmpFile -Force',
+                                'Write-Host "Tmp file at: $tmpFile"',
+                                'Set-Location $tmpPath',
+                                "& `$tmpFile -ClientId '$ClientId' -ClientSecret '$ClientSecret'")}
+
     Set-AWSCredentials –AccessKey $AccessKey –SecretKey $SecretKey
     Set-DefaultAWSRegion -Region $Region
 
-    $commandId = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter @{'commands'=@('dir C:\Users', 'dir C:\')}
+    try{
+        $SSMCommand = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter $Parameter
+    } catch {
+        if ($_.FullyQualifiedErrorId -like "*Amazon.SimpleSystemsManagement.Model.InvalidInstanceIdException*") {
+            Write-Error "Invalid Instance ID, does the AMI have a version of the EC2 config service installed which is compatible with SSM?"
+            return
+        }
 
-    Get-SSMCommandInvocation -CommandId $commandId -Details $true | Select-Object -ExpandProperty CommandPlugins
+        Write-Error $_.exception.message
+    }
+
+    Get-SSMCommandInvocation -CommandId $SSMCommand.CommandId -Details $true | Select-Object -ExpandProperty CommandPlugins
+}
+
+Function Invoke-ComaeAwsVMLinAnalyze(
+    [Parameter(Mandatory = $True)] [string] $ClientId,
+    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $AccessKey,
+    [Parameter(Mandatory = $True)] [string] $SecretKey,
+    [Parameter(Mandatory = $True)] [string] $Region,
+    [Parameter(Mandatory = $True)] [string] $InstanceId
+) {
+    Write-Error "This current cmdlet is not implemented yet."
+}
+
+Function Invoke-ComaeADWinAnalyze(
+    [Parameter(Mandatory = $True)] [string] $ClientId,
+    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $ComputerName
+) {
+    Write-Error "This current cmdlet is not implemented yet."
+
+    if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
+        Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
+        Return 1
+    }
+
+    $clientArgs = ($ClientId, $ClientSecret)
+    if (Test-Connection -ComputerName $ComputerName -Quiet) {
+        Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeAzureIR.ps1 -ArgumentList $clientArgs
+    } else {
+        Write-Error "Invoke-Command can not be used on the remote machine."
+    }
 }

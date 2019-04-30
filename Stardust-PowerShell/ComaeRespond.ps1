@@ -33,7 +33,7 @@ if (Test-Path -Path Comae-Toolkit.zip) {
     if ($env:Processor_Architecture -eq "x86") { $arch = "x86" }
 
     Set-Location -Path  ".\Comae-Toolkit\$arch\"
-    . ($PSScriptRoot + "\Comae-Toolkit\" + $arch + "\Comae.ps1")
+    . .\Comae.ps1
     Send-ComaeDumpFile -Key $token -Path $rootDir\Dumps -ItemType Directory -IsCompress
 
     # Clean everything.

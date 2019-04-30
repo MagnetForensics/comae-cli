@@ -467,7 +467,7 @@ Function Invoke-ComaeAzVMWinAnalyze(
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeAzureIR.ps1' -Parameter @{ClientId = $ClientId; ClientSecret = $ClientSecret}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{ClientId = $ClientId; ClientSecret = $ClientSecret}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(

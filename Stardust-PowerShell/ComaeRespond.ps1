@@ -36,6 +36,7 @@ if (Test-Path -Path Comae-Toolkit.zip) {
     . .\Comae.ps1
     Send-ComaeDumpFile -Key $token -Path $rootDir\Dumps -ItemType Directory -IsCompress
 
+    Set-Location $rootDir
     # Clean everything.
     Remove-Item $rootDir\Dumps\* -Force -Recurse
     Remove-Item $rootDir\Comae-Toolkit.zip

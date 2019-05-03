@@ -31,6 +31,7 @@ if (Test-Path -Path Comae-Toolkit.zip) {
 
     $arch = "x64"
     if ($env:Processor_Architecture -eq "x86") { $arch = "x86" }
+    if ($env:Processor_ArchiteW6432 -eq "ARM64") { $arch = "ARM64" }
 
     Set-Location -Path  ".\Comae-Toolkit\$arch\"
     . .\Comae.ps1

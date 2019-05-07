@@ -490,8 +490,8 @@ Function Invoke-ComaeAzVMLinAnalyze(
 Function Invoke-ComaeAwsVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
-    [Parameter(Mandatory = $False)] [string] $AccessKey,
-    [Parameter(Mandatory = $False)] [string] $SecretKey,
+    [Parameter(Mandatory = $False)] [string] $AccessKey = $null,
+    [Parameter(Mandatory = $False)] [string] $SecretKey = $null,
     [Parameter(Mandatory = $True)] [string] $Region,
     [Parameter(Mandatory = $True)] [string] $InstanceId
 ) {
@@ -506,14 +506,14 @@ Function Invoke-ComaeAwsVMWinAnalyze(
     }
     
     if ((Get-AWSCredentials -ProfileName default) -eq $null) {
-	if (($AccessKey -eq $null) -and ($SecretKey -eq $null)) {
-    	    Write-Error "You need to log in to your AWS account. Use -AccessKey and -SecretKey"
-	    Return $False
-	}
-	else
-	{
-            Set-AWSCredentials –AccessKey $AccessKey –SecretKey $SecretKey
-	}
+	    if ([string]::IsNullOrEmpty($AccessKey) -or [string]::IsNullOrEmpty($SecretKey)) {
+	       Write-Error "You need to log in to your AWS account. Use -AccessKey and -SecretKey"
+	       Return $False
+	    }
+	    else
+	    {
+	    	Set-AWSCredentials –AccessKey $AccessKey –SecretKey $SecretKey
+	    }
     }
 
     Set-DefaultAWSRegion -Region $Region

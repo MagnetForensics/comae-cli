@@ -490,8 +490,8 @@ Function Invoke-ComaeAzVMLinAnalyze(
 Function Invoke-ComaeAwsVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
-    [Parameter(Mandatory = $True)] [string] $AccessKey,
-    [Parameter(Mandatory = $True)] [string] $SecretKey,
+    [Parameter(Mandatory = $False)] [string] $AccessKey,
+    [Parameter(Mandatory = $False)] [string] $SecretKey,
     [Parameter(Mandatory = $True)] [string] $Region,
     [Parameter(Mandatory = $True)] [string] $InstanceId
 ) {
@@ -499,11 +499,25 @@ Function Invoke-ComaeAwsVMWinAnalyze(
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
         Return 1
     }
+    
     if (!(Get-Module -ListAvailable -Name AWSPowerShell)) {
         Write-Error "You need to install AWS Tools for PowerShell. (Install-Module -Name AWSPowerShell.NetCore -AllowClobber)"
         Return $False
     }
+    
+    if ((Get-AWSCredentials -ProfileName default) -eq $null) {
+	if (($AccessKey -eq $null) -and ($SecretKey -eq $null)) {
+    	    Write-Error "You need to log in to your AWS account. Use -AccessKey and -SecretKey"
+	    Return $False
+	}
+	else
+	{
+            Set-AWSCredentials –AccessKey $AccessKey –SecretKey $SecretKey
+	}
+    }
 
+    Set-DefaultAWSRegion -Region $Region
+	    
     # Create a copy of ComaeRespond.ps1 on the remote machine's Temp folder.
     $content = Get-Content .\ComaeRespond.ps1 -Raw
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($content))
@@ -516,10 +530,6 @@ Function Invoke-ComaeAwsVMWinAnalyze(
                                 'Write-Host "Tmp file at: $tmpFile"',
                                 'Set-Location $tmpPath',
                                 "& `$tmpFile -ClientId '$ClientId' -ClientSecret '$ClientSecret'")}
-
-    Set-AWSCredentials –AccessKey $AccessKey –SecretKey $SecretKey
-    Set-DefaultAWSRegion -Region $Region
-
     try{
         $SSMCommand = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter $Parameter
     } catch {
@@ -537,8 +547,8 @@ Function Invoke-ComaeAwsVMWinAnalyze(
 Function Invoke-ComaeAwsVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
-    [Parameter(Mandatory = $True)] [string] $AccessKey,
-    [Parameter(Mandatory = $True)] [string] $SecretKey,
+    [Parameter(Mandatory = $False)] [string] $AccessKey,
+    [Parameter(Mandatory = $False)] [string] $SecretKey,
     [Parameter(Mandatory = $True)] [string] $Region,
     [Parameter(Mandatory = $True)] [string] $InstanceId
 ) {

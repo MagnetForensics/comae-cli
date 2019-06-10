@@ -2,11 +2,11 @@
 
 ## Get the API key
 
-`./comae.py --client-id clientIdHere --client-secret clientSecretHere get_api_key`
+`./comae.py --client-id clientIdHere --client-secret clientSecretHere --get_api_key`
 
 ## Dump the memory with Comae DumpIt and upload to Comae Stardust
 
-`./comae.py --client-id clientIdHere --client-secret clientSecretHere dump`
+`./comae.py --client-id clientIdHere --client-secret clientSecretHere --dump-it`
 
 # Use as a Library
 

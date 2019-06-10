@@ -6,7 +6,7 @@
 
 ## Dump the memory with Comae DumpIt and upload to Comae Stardust
 
-`./comae.py --client-id clientIdHere --cclient-secret clientSecretHere dump`
+`./comae.py --client-id clientIdHere --client-secret clientSecretHere dump`
 
 # Use as a Library
 

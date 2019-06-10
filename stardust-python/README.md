@@ -1,31 +1,31 @@
-# Usage from CLI
+# Comae Python
 
 ## Get the API key
 
-`./comae.py --client_id clientIdHere --client_secret clientSecretHere get_api_key`
+`./comae.py --client-id clientIdHere --client-secret clientSecretHere get_api_key`
 
-## Dump memory and upload
+## Dump the memory with Comae DumpIt and upload to Comae Stardust
 
-`./comae.py --client_id clientIdHere --client_secret clientSecretHere dump`
+`./comae.py --client-id clientIdHere --cclient-secret clientSecretHere dump`
 
-# Usage as python library
+# Use as a Library
 
 First, `import comae`
 
-## Get the api key
+## Get the Comae Stardust API key
 
 ```
-print(comae.get_api_key(client_id, client_secret))
+print(comae.getApiKey(client_id, client_secret))
 ```
 
-## Generate the dump file
+## Acquire a memory image with Comae DumpIt
 ```
-filename = comae.dump_it()
+filename = comae.dumpIt()
 print(filename)
 ```
 
-## Upload the dump file
+## Upload the memory image to Comae Stardust
 ```
-key = comae.get_api_key(client_id, client_secret)
-upload_file(filename, key)
+key = comae.getApiKey(client_id, client_secret)
+comae.uploadFile(filename, key)
 ```

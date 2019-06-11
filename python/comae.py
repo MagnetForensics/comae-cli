@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import requests, os, time, subprocess, argparse, math, sys
 
+if sys.version_info.major < 3:
+    print("ERROR: You must be using Python3")
+    exit(1)
+
 hostname = "api.comae.io"
 
 def getApiKey(client_id, client_secret):
@@ -23,23 +27,24 @@ def getApiKey(client_id, client_secret):
 
     return result_json["access_token"]
 
-def uploadDump(filename, key):
+def sendDumpToComae(filename, key):
     global hostname
 
     file = open(filename, "rb")
-    filesize = os.path.getsize(filename)
-    buffersize = 32 * 1024 * 1024
-    num_of_chunks = math.ceil(filesize / buffersize)
-    unique_id = str(filesize) + "-" + filename
+    fileSize = os.path.getsize(filename)
+    bufferSize = 32 * 1024 * 1024
+    chunkCount = math.ceil(fileSize / bufferSize)
+    uniqueId = str(fileSize) + "-" + filename
 
     headers = {"Authorization": "Bearer " + key}
 
-    for chunk_number in range(num_of_chunks):
-        print(f"\rUploading {chunk_number} / {num_of_chunks} chunks", end="")
-        chunk = file.read(buffersize)
+    offset = 0
+    for chunkNumber in range(1, chunkCount + 1):
+        print(f"\r[COMAE] Uploading {chunkNumber} / {chunkCount} chunks", end="")
+        chunk = file.read(bufferSize)
         # When it's the last chunk the size can be smaller than the buffer
-        chunk_size = len(chunk)
-        url = f"https://{hostname}/v1/upload/dump/chunks?chunkSize={chunk_size}&chunk={chunk_number}&id={unique_id}&filename={filename}&chunks={num_of_chunks}"
+        chunkSize = len(chunk)
+        url = f"https://{hostname}/v1/upload/dump/chunks?chunkSize={chunkSize}&chunk={chunkNumber}&id={uniqueId}&filename={filename}&chunks={chunkCount}"
 
         form_data = {
             "filename": (
@@ -56,12 +61,14 @@ def uploadDump(filename, key):
             print(res.text, file=sys.stderr)
             exit(1)
 
+        offset += chunkSize
+
     upload_complete_url = f"https://{hostname}/v1/upload/dump/completed"
-    upload_details = {"id": unique_id, "filename": filename, "chunks": num_of_chunks}
+    upload_details = {"id": uniqueId, "filename": filename, "chunks": chunkCount}
 
     res = requests.post(upload_complete_url, headers=headers, json=upload_details)
 
-    print("\nUpload complete!")
+    print("\n[COMAE] Upload complete!")
 
 def isRoot():
     return os.getuid() == 0
@@ -71,19 +78,22 @@ def dumpIt():
         print("Program must be run as root", file=sys.stderr)
         exit(1)
 
-    current_time = time.strftime("%Y-%m-%d %H:%M:%S:000")
+    current_time = time.strftime("%Y%m%d-%H%M%S")
     kernel_release = os.uname()[2]
-    filename = current_time + "." + kernel_release + ".core"
+    filename = kernel_release + "." + current_time + ".dumpit" + ".core"
 
     # This way we can run the script from another path, we don't have to be in
     # the directory containing DumpIt
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
 
-    print("Running dump to " + filename)
+    print("[COMAE] Saving memory image as \"" + filename + "\"")
     subprocess.run([dumpIt_path, filename])
 
-    print("Zipping it")
+    print("[COMAE] Compressing image as \"" + filename + ".zip\"")
     subprocess.run(["zip", filename + ".zip", filename])
+
+    print("[COMAE] Removing memory image file \"" + filename + "\"")
+    subprocess.run(["rm", filename])
 
     return filename + ".zip"
 
@@ -92,12 +102,16 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Comae Stardust Client")
     argparser.add_argument("--client-id", help="Client ID")
     argparser.add_argument("--client-secret", help="Client Secret")
-    argparser.add_argument('-k', '--get-api-key', action='store_true')
-    argparser.add_argument('-d', '--dump-it', action='store_true')
+    argparser.add_argument('-k', '--get-api-key', action='store_true', help="Get Comae Stardust API Key")
+    argparser.add_argument('-d', '--dump-it', action='store_true', help="Dump with Comae DumpIt and send to Comae Stardust")
+    argparser.add_argument('--send-to-comae', action='store_true')
+    argparser.add_argument('--send-to-az', action='store_true')
+    argparser.add_argument('--send-to-aws', action='store_true')
     args = argparser.parse_args()
 
-    if not args.command:
+    if not args.get_api_key and not args.dump_it:
         argparser.print_help()
+        exit(1)
 
     if not args.client_secret or not args.client_id:
         print("Provide client_secret and client_id", file=sys.stderr)
@@ -106,10 +120,10 @@ if __name__ == "__main__":
     if args.get_api_key:
         print(getApiKey(args.client_id, args.client_secret))
 
-    else if args.dump_it:
-        print("Requesting Comae Stardust API key....")
+    elif args.dump_it:
+        print("[COMAE] Requesting Comae Stardust API key....")
         api_key = getApiKey(args.client_id, args.client_secret)
-        print("Acquiring the memory image with Comae DumpIt...")
+        print("[COMAE] Acquiring the memory image with Comae DumpIt...")
         filename = dumpIt()
-        print("Uploading the core dump generated by Comae DumpIt to Comae Stardust....")
-        uploadDump(filename, api_key)
+        print("[COMAE] Uploading the core dump generated by Comae DumpIt to Comae Stardust....")
+        sendDumpToComae(filename, api_key)

@@ -41,25 +41,12 @@ def sendDumpToComae(filename, key):
     for chunkNumber in range(1, chunkCount + 1):
         # '\033[1A' moves the cursor up one line, because passing `end=""` to print
         # to strip the newline doesn't want to work here on python2
-        status_string = "\r[COMAE] Uploading {chunkNumber} / {chunkCount} chunks \033[1A".replace(
-            "{chunkNumber}", str(chunkNumber)
-        ).replace(
-            "{chunkCount}", str(chunkCount)
-        )
+        status_string = "\r[COMAE] Uploading %d / %d chunks \033[1A" % (chunkNumber, chunkCount)
         print(status_string)
         chunk = file.read(bufferSize)
         # When it's the last chunk the size can be smaller than the buffer
         chunkSize = len(chunk)
-        url = (
-            "https://{hostname}/v1/upload/dump/chunks?chunkSize={chunkSize}&chunk={chunkNumber}&id={uniqueId}&filename={filename}&chunks={chunkCount}".replace(
-                "{hostname}", hostname
-            )
-            .replace("{chunkNumber}", str(chunkNumber))
-            .replace("{chunkSize}", str(chunkSize))
-            .replace("{uniqueId}", uniqueId)
-            .replace("{filename}", filename)
-            .replace("{chunkCount}", str(chunkCount))
-        )
+        url = "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d" % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount)
 
         form_data = {
             "filename": (
@@ -78,9 +65,7 @@ def sendDumpToComae(filename, key):
 
         offset += chunkSize
 
-    upload_complete_url = "https://{hostname}/v1/upload/dump/completed".replace(
-        "{hostname}", hostname
-    )
+    upload_complete_url = "https://%s/v1/upload/dump/completed" % (hostname)
     upload_details = {"id": uniqueId, "filename": filename, "chunks": chunkCount}
 
     res = requests.post(upload_complete_url, headers=headers, json=upload_details)

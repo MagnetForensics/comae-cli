@@ -41,12 +41,18 @@ def sendDumpToComae(filename, key):
     for chunkNumber in range(1, chunkCount + 1):
         # '\033[1A' moves the cursor up one line, because passing `end=""` to print
         # to strip the newline doesn't want to work here on python2
-        status_string = "\r[COMAE] Uploading %d / %d chunks \033[1A" % (chunkNumber, chunkCount)
+        status_string = "\r[COMAE] Uploading %d / %d chunks \033[1A" % (
+            chunkNumber,
+            chunkCount,
+        )
         print(status_string)
         chunk = file.read(bufferSize)
         # When it's the last chunk the size can be smaller than the buffer
         chunkSize = len(chunk)
-        url = "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d" % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount)
+        url = (
+            "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d"
+            % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount)
+        )
 
         form_data = {
             "filename": (

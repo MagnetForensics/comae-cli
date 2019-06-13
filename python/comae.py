@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-import requests, os, time, subprocess, argparse, math, sys
-
-if sys.version_info.major < 3:
-    print("ERROR: You must be using Python3")
-    exit(1)
+from __future__ import print_function
+import requests, os, time, subprocess, argparse, math, sys, zipfile
 
 hostname = "api.comae.io"
+
 
 def getApiKey(client_id, client_secret):
     body = {
@@ -27,24 +25,41 @@ def getApiKey(client_id, client_secret):
 
     return result_json["access_token"]
 
+
 def sendDumpToComae(filename, key):
     global hostname
 
     file = open(filename, "rb")
     fileSize = os.path.getsize(filename)
     bufferSize = 32 * 1024 * 1024
-    chunkCount = math.ceil(fileSize / bufferSize)
+    chunkCount = int(math.ceil(fileSize / bufferSize))
     uniqueId = str(fileSize) + "-" + filename
 
     headers = {"Authorization": "Bearer " + key}
 
     offset = 0
     for chunkNumber in range(1, chunkCount + 1):
-        print(f"\r[COMAE] Uploading {chunkNumber} / {chunkCount} chunks", end="")
+        # '\033[1A' moves the cursor up one line, because passing `end=""` to print
+        # to strip the newline doesn't want to work here on python2
+        status_string = "\r[COMAE] Uploading {chunkNumber} / {chunkCount} chunks \033[1A".replace(
+            "{chunkNumber}", str(chunkNumber)
+        ).replace(
+            "{chunkCount}", str(chunkCount)
+        )
+        print(status_string)
         chunk = file.read(bufferSize)
         # When it's the last chunk the size can be smaller than the buffer
         chunkSize = len(chunk)
-        url = f"https://{hostname}/v1/upload/dump/chunks?chunkSize={chunkSize}&chunk={chunkNumber}&id={uniqueId}&filename={filename}&chunks={chunkCount}"
+        url = (
+            "https://{hostname}/v1/upload/dump/chunks?chunkSize={chunkSize}&chunk={chunkNumber}&id={uniqueId}&filename={filename}&chunks={chunkCount}".replace(
+                "{hostname}", hostname
+            )
+            .replace("{chunkNumber}", str(chunkNumber))
+            .replace("{chunkSize}", str(chunkSize))
+            .replace("{uniqueId}", uniqueId)
+            .replace("{filename}", filename)
+            .replace("{chunkCount}", str(chunkCount))
+        )
 
         form_data = {
             "filename": (
@@ -63,15 +78,28 @@ def sendDumpToComae(filename, key):
 
         offset += chunkSize
 
-    upload_complete_url = f"https://{hostname}/v1/upload/dump/completed"
+    upload_complete_url = "https://{hostname}/v1/upload/dump/completed".replace(
+        "{hostname}", hostname
+    )
     upload_details = {"id": uniqueId, "filename": filename, "chunks": chunkCount}
 
     res = requests.post(upload_complete_url, headers=headers, json=upload_details)
 
     print("\n[COMAE] Upload complete!")
 
+
 def isRoot():
     return os.getuid() == 0
+
+
+def createZip(filename):
+    # allowZip64 to allow for > 4 GB zip files
+    zip_f = zipfile.ZipFile(
+        filename + ".zip", mode="w", compression=zipfile.ZIP_DEFLATED, allowZip64=True
+    )
+    zip_f.write(filename)
+    zip_f.close()
+
 
 def dumpIt():
     if not isRoot():
@@ -86,14 +114,15 @@ def dumpIt():
     # the directory containing DumpIt
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
 
-    print("[COMAE] Saving memory image as \"" + filename + "\"")
-    subprocess.run([dumpIt_path, filename])
+    print('[COMAE] Saving memory image as "' + filename + '"')
+    subprocess.call([dumpIt_path, filename])
 
-    print("[COMAE] Compressing image as \"" + filename + ".zip\"")
-    subprocess.run(["zip", filename + ".zip", filename])
+    print('[COMAE] Compressing image as "' + filename + '.zip"')
+    createZip(filename)
+    # subprocess.call(["zip", '-0', filename + ".zip", filename])
 
-    print("[COMAE] Removing memory image file \"" + filename + "\"")
-    subprocess.run(["rm", filename])
+    print('[COMAE] Removing memory image file "' + filename + '"')
+    os.remove(filename)
 
     return filename + ".zip"
 
@@ -102,11 +131,18 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Comae Stardust Client")
     argparser.add_argument("--client-id", help="Client ID")
     argparser.add_argument("--client-secret", help="Client Secret")
-    argparser.add_argument('-k', '--get-api-key', action='store_true', help="Get Comae Stardust API Key")
-    argparser.add_argument('-d', '--dump-it', action='store_true', help="Dump with Comae DumpIt and send to Comae Stardust")
-    argparser.add_argument('--send-to-comae', action='store_true')
-    argparser.add_argument('--send-to-az', action='store_true')
-    argparser.add_argument('--send-to-aws', action='store_true')
+    argparser.add_argument(
+        "-k", "--get-api-key", action="store_true", help="Get Comae Stardust API Key"
+    )
+    argparser.add_argument(
+        "-d",
+        "--dump-it",
+        action="store_true",
+        help="Dump with Comae DumpIt and send to Comae Stardust",
+    )
+    argparser.add_argument("--send-to-comae", action="store_true")
+    argparser.add_argument("--send-to-az", action="store_true")
+    argparser.add_argument("--send-to-aws", action="store_true")
     args = argparser.parse_args()
 
     if not args.get_api_key and not args.dump_it:
@@ -125,5 +161,7 @@ if __name__ == "__main__":
         api_key = getApiKey(args.client_id, args.client_secret)
         print("[COMAE] Acquiring the memory image with Comae DumpIt...")
         filename = dumpIt()
-        print("[COMAE] Uploading the core dump generated by Comae DumpIt to Comae Stardust....")
+        print(
+            "[COMAE] Uploading the core dump generated by Comae DumpIt to Comae Stardust...."
+        )
         sendDumpToComae(filename, api_key)

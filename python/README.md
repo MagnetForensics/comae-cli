@@ -8,6 +8,14 @@
 
 `./comae.py --client-id clientIdHere --client-secret clientSecretHere --dump-it`
 
+## Upload a memory dump acquired with Comae DumpIt to Comae Stardust by URL
+
+`./comae.py --client-id clientIdHere --client-secret clientSecretHere --dump-it --file-url fileUrlHere`
+
+## Upload a memory snapshot to Comae Stardust by URL
+
+`./comae.py --client-id clientIdHere --client-secret clientSecretHere --snap-it --file-url fileUrlHere`
+
 # Use as a Library
 
 First, `import comae`

@@ -1,2 +1,5 @@
 requests
 google-cloud-storage
+azure
+azure-storage-blob
+boto3

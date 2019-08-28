@@ -2,7 +2,7 @@
 from __future__ import print_function
 import requests, os, time, subprocess, argparse, math, sys, zipfile
 
-hostname = "api.comae.io"
+hostname = "api.comae.com"
 
 def getApiKey(client_id, client_secret):
     body = {

@@ -1,4 +1,4 @@
-﻿$hostname = "api.comae.io"
+﻿$hostname = "api.comae.com"
 
 Function Get-ComaeAPIKey(
     [Parameter(Mandatory = $True)] [string] $ClientId,

@@ -5,7 +5,7 @@ Param (
  [string]$ClientSecret
 )
 
-$hostname = "api.comae.io"
+$hostname = "api.comae.com"
 
 $TempDir = [System.IO.Path]::GetTempPath()
 Set-Location $TempDir

@@ -1,115 +1,179 @@
+
 #!/usr/bin/env python3
-import requests, os, time, subprocess, argparse, math, sys
+#-------------------------------------------------------------------------------
+# comae.py
+#
+# Comae Stardust Python CLI
+#
+#-------------------------------------------------------------------------------
 
-hostname = "api.comae.io"
+from __future__ import print_function
+import requests, time, subprocess, argparse, sys, os
+import cloud_upload, util, stardust_api
 
-def getApiKey(client_id, client_secret):
-    body = {
-        "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "audience": "JHYFRulOwjLslg87tUt4bCT8i4O3yBsm",
-    }
-
-    uri = "https://comae.auth0.com/oauth/token"
-
-    result = requests.post(uri, json=body)
-    result_json = result.json()
-
-    if "access_token" not in result_json:
-        print("Failed to get api key", file=sys.stderr)
-        print(result_json, file=sys.stderr)
-        exit(1)
-
-    return result_json["access_token"]
-
-def uploadDump(filename, key):
-    global hostname
-
-    file = open(filename, "rb")
-    filesize = os.path.getsize(filename)
-    buffersize = 32 * 1024 * 1024
-    num_of_chunks = math.ceil(filesize / buffersize)
-    unique_id = str(filesize) + "-" + filename
-
-    headers = {"Authorization": "Bearer " + key}
-
-    for chunk_number in range(num_of_chunks):
-        print(f"\rUploading {chunk_number} / {num_of_chunks} chunks", end="")
-        chunk = file.read(buffersize)
-        # When it's the last chunk the size can be smaller than the buffer
-        chunk_size = len(chunk)
-        url = f"https://{hostname}/v1/upload/dump/chunks?chunkSize={chunk_size}&chunk={chunk_number}&id={unique_id}&filename={filename}&chunks={num_of_chunks}"
-
-        form_data = {
-            "filename": (
-                None,
-                filename,
-            ),  # Tuple of (filename, content, content type, dict of headers), we don't want a filename
-            "file": (filename, chunk, "application/octet-stream"),
-        }
-
-        res = requests.post(url, headers=headers, files=form_data)
-
-        if res.status_code != 200:
-            print("Upload failed", file=sys.stderr)
-            print(res.text, file=sys.stderr)
-            exit(1)
-
-    upload_complete_url = f"https://{hostname}/v1/upload/dump/completed"
-    upload_details = {"id": unique_id, "filename": filename, "chunks": num_of_chunks}
-
-    res = requests.post(upload_complete_url, headers=headers, json=upload_details)
-
-    print("\nUpload complete!")
-
-def isRoot():
-    return os.getuid() == 0
 
 def dumpIt():
-    if not isRoot():
+    if not util.isRoot():
         print("Program must be run as root", file=sys.stderr)
         exit(1)
 
-    current_time = time.strftime("%Y-%m-%d %H:%M:%S:000")
+    current_time = time.strftime("%Y%m%d-%H%M%S")
     kernel_release = os.uname()[2]
-    filename = current_time + "." + kernel_release + ".core"
+    filename = kernel_release + "." + current_time + ".dumpit" + ".core"
 
     # This way we can run the script from another path, we don't have to be in
     # the directory containing DumpIt
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
 
-    print("Running dump to " + filename)
-    subprocess.run([dumpIt_path, filename])
+    print('[COMAE] Saving memory image as "' + filename + '"')
+    subprocess.call([dumpIt_path, filename])
 
-    print("Zipping it")
-    subprocess.run(["zip", filename + ".zip", filename])
+    print('[COMAE] Compressing image as "' + filename + '.zip"')
+    util.createZip(filename)
+    # subprocess.call(["zip", '-0', filename + ".zip", filename])
+
+    print('[COMAE] Removing memory image file "' + filename + '"')
+    os.remove(filename)
 
     return filename + ".zip"
 
+def createLiveSnapshot():
+    if not util.isRoot():
+        print("Program must be run as root", file=sys.stderr)
+        exit(1)
+
+    current_time = time.strftime("%Y%m%d-%H%M%S")
+    kernel_release = os.uname()[2]
+    filename = kernel_release + "." + current_time + ".live-comae"
+
+    mem2jsonIt_path = os.path.dirname(os.path.realpath(__file__)) + "/Mem2Json"
+
+    print('[COMAE] Saving memory image as "' + filename + '"')
+    subprocess.call([mem2jsonIt_path, "--live", "--out", filename])
+
+    return filename + ".json.zip"
+
+def handle_file(file, args, filetype):
+    if args.action == "store":
+        pass # we already have the file stored
+    
+    if args.action == "upload-comae":
+        if not args.comae_client_secret or not args.comae_client_id:
+            print("Provide client_secret and client_id", file=sys.stderr)
+            exit(1)
+
+        print("[COMAE] Requesting Comae Stardust API key....")
+        api_key = stardust_api.getApiKey(args.comae_client_id, args.comae_client_secret)
+        print("[COMAE] Uploading file to Comae Stardust")
+
+        if filetype == "dump":
+            stardust_api.sendDumpToComae(file, api_key)
+
+        if filetype == "snap":
+            stardust_api.sendSnapshotToComae(file, api_key)
+
+        print("[COMAE] Uploaded to Comae Stardust")
+    
+    if args.action == "upload-gcp":
+        fail = False
+        if not "GOOGLE_APPLICATION_CREDENTIALS" in os.environ and not "gcp_creds_file" in args:
+            print("Please provide path to gcloud creds with --gcp-creds-file or set the GOOGLE_APPLICATION_CREDENTIALS env var.")
+            fail = True
+        
+        if not "bucket" in args:
+            print("Please provice a bucket name with --bucket")
+            fail = True
+
+        if fail:
+            exit(1)
+        
+        if "gcp_creds_file" in args:
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = args.gcp_creds_file
+
+        cloud_upload.upload_gcp(args.bucket, file)
+        print("[COMAE] Uploaded to GCP bucket")
+
+    if args.action == "upload-az":
+        fail = False
+        if not "az_account_name" in args or not "az_account_key" in args:
+            print("Please provide --az-account-name and --az-account-key")
+            fail = True
+
+        if not "bucket" in args:
+            print("Please provide a bucket name with --bucket")
+            fail = True
+
+        if fail:
+            exit(1)
+
+        cloud_upload.upload_az(args.az_account_name, args.az_account_key, args.bucket, filename)
+        print("[COMAE] Uploaded to Azure")
+
+    if args.action == "upload-s3":
+        fail = False
+        if not "aws_access_id" in args or not "aws_access_secret" in args:
+            print("Please provide --aws-access-id and --aws-access-secret")
+            fail = True
+
+        if not "bucket" in args:
+            print("Please provide a bucket name with --bucket")
+            fail = True
+
+        if fail:
+            exit(1)
+
+        cloud_upload.upload_s3(args.aws_access_id, args.aws_access_secret,  args.bucket, filename)
+        print("[COMAE] Uploaded to S3")
+        
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Comae Stardust Client")
-    argparser.add_argument("--client-id", help="Client ID")
-    argparser.add_argument("--client-secret", help="Client Secret")
-    argparser.add_argument('-k', '--get-api-key', action='store_true')
-    argparser.add_argument('-d', '--dump-it', action='store_true')
+    argparser.add_argument(
+        "-k", "--get-api-key", action="store_true", help="Get Comae Stardust API Key"
+    )
+    argparser.add_argument(
+        "-d",
+        "--dump-it",
+        action="store_true",
+        help="Dump with Comae DumpIt and send to Comae Stardust",
+    )
+    argparser.add_argument(
+        "-s",
+        "--snap-it",
+        action="store_true",
+        help="Dump Mem2Json and send to Comae Stardust",
+    )
+    argparser.add_argument("--action", help='One of "store", "upload-comae", "upload-gcp", "upload-az", "upload-s3"', default="store")
+    argparser.add_argument("--file-url", help="URL of a dump/snapshot file. The tool will not upload the local file if it is specified.")
+    argparser.add_argument("--bucket", help="Name of bucket to use if uploading to GCP / Azure / S3")
+    argparser.add_argument("--comae-client-id", help="Comae Client ID if uploading to Comae Stardust")
+    argparser.add_argument("--comae-client-secret", help="Comae Client Secret if uploading to Comae Stardust")
+    argparser.add_argument("--gcp-creds-file", help="Path to file containing GCP credentials, if uploading to GCP")
+    argparser.add_argument("--az-account-name", help="Account name if uploading to Azure")
+    argparser.add_argument("--az-account-key", help="Account key if uploading to Azure")
+    argparser.add_argument("--aws-access-id", help="AWS access key ID")
+    argparser.add_argument("--aws-access-secret", help="AWS access key secret")
     args = argparser.parse_args()
 
-    if not args.command:
+    if not args.get_api_key and not args.dump_it and not args.snap_it:
         argparser.print_help()
-
-    if not args.client_secret or not args.client_id:
-        print("Provide client_secret and client_id", file=sys.stderr)
         exit(1)
 
-    if args.get_api_key:
-        print(getApiKey(args.client_id, args.client_secret))
 
-    else if args.dump_it:
-        print("Requesting Comae Stardust API key....")
-        api_key = getApiKey(args.client_id, args.client_secret)
-        print("Acquiring the memory image with Comae DumpIt...")
-        filename = dumpIt()
-        print("Uploading the core dump generated by Comae DumpIt to Comae Stardust....")
-        uploadDump(filename, api_key)
+    if args.get_api_key:
+        print(stardust_api.getApiKey(args.client_id, args.client_secret))
+
+    elif args.dump_it:
+        if args.file_url:
+            handle_file(args.file_url, args, "dump")
+        else:
+            print("[COMAE] Acquiring the memory image with Comae DumpIt...")
+            filename = dumpIt()
+            handle_file(filename, args, "dump")
+
+    elif args.snap_it:
+        if args.file_url:
+            handle_file(args.file_url, args, "snap")
+        else:
+            filename = createLiveSnapshot()
+            handle_file(filename, args, "snap")

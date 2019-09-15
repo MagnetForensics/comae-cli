@@ -159,6 +159,10 @@ if __name__ == "__main__":
         argparser.print_help()
         exit(1)
 
+    if args.bucket and not args.action:
+        print("[COMAE] Bucket provided, but no action. Please provide an action.")
+        argparse.print_help()
+        exit(1)
 
     if args.get_api_key:
         print(stardust_api.getApiKey(args.client_id, args.client_secret))

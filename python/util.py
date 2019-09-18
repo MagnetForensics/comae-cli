@@ -18,3 +18,10 @@ def createZip(filename):
     )
     zip_f.write(filename)
     zip_f.close()
+
+def checkAllArgsExist(args, required_args):
+    for required_arg in required_args:
+        if getattr(args, required_arg) == None:
+            return False
+    
+    return True

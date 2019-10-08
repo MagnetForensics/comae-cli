@@ -84,11 +84,15 @@ def handle_file(file, args, filetype):
             print("Please provice a bucket name with --bucket")
             fail = True
 
-        if fail:
-            exit(1)
         
         if "gcp_creds_file" in args:
             os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = args.gcp_creds_file
+        
+        if not os.path.exists(os.environ['GOOGLE_APPLICATION_CREDENTIALS']):
+            print(f"[COMAE] GCP creds file {os.environ['GOOGLE_APPLICATION_CREDENTIALS']} does not exist")
+
+        if fail:
+            exit(1)
 
         cloud_upload.upload_gcp(args.bucket, file)
         print("[COMAE] Uploaded to GCP bucket")

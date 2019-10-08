@@ -1,8 +1,6 @@
 Param (
  [Parameter(Mandatory=$true)]
- [string]$ClientId, 
- [Parameter(Mandatory=$true)]
- [string]$ClientSecret
+ [string]$token
 )
 
 $hostname = "api.comae.com"
@@ -10,7 +8,7 @@ $hostname = "api.comae.com"
 $TempDir = [System.IO.Path]::GetTempPath()
 Set-Location $TempDir
 Write-Host "Current Directory: " $pwd
-if (Test-Path -Path Comae-Toolkit.zip) { 
+if (Test-Path -Path Comae-Toolkit.zip) {
     Remove-Item Comae-Toolkit.zip
 }
 
@@ -18,11 +16,9 @@ if (Test-Path -Path Comae-Toolkit) {
     Remove-Item Comae-Toolkit\* -Force -Recurse
 }
 
-$token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
-
 $postParams = @{token=$token}
 $Uri = "https://" + $hostname + "/tools/download"
-Invoke-WebRequest -Uri $Uri -Method POST -OutFile Comae-Toolkit.zip -Body $postParams 
+Invoke-WebRequest -Uri $Uri -Method POST -OutFile Comae-Toolkit.zip -Body $postParams
 
 $rootDir = $pwd
 

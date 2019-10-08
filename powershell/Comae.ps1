@@ -196,7 +196,7 @@ Function New-ComaeDumpFile(
     Write-Output "Launching DumpIt.exe..."
 
     .\DumpIt.exe /quiet $Compression /output $DumpFile
-	
+
     $DumpFile
 }
 
@@ -262,13 +262,13 @@ Function Send-ComaeDumpFile(
 
 # This does not work if the file is bigger than 2GB.
 #     if (($PSVersionTable.PSVersion.Major -ge 5) -and (!$IsCompress)) {
-# 
+#
 #         $ArchiveFile = $DumpFile + ".zip"
-# 
+#
 #         Compress-Archive -LiteralPath $DumpFile -DestinationPath $ArchiveFile
-# 
+#
 #         if ((Test-Path $ArchiveFile) -eq $True) {
-# 
+#
 #             $DumpFile = $ArchiveFile
 #         }
 #     }
@@ -456,18 +456,20 @@ Function Invoke-ComaeAzVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName
 ) {
+    $token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
+
     if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
         Return $False
     }
-    
+
     if (!(Get-Module -ListAvailable -Name Az.Compute)) {
         Write-Error "You need to install Azure PowerShell Az module. (Install-Module -Name Az -AllowClobber)"
         Return $False
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{ClientId = $ClientId; ClientSecret = $ClientSecret}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{token=$token}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(
@@ -481,7 +483,7 @@ Function Invoke-ComaeAzVMLinAnalyze(
     # 	Write-Error "This script needs to be in the same directory as '.\ComaeRespond.sh'."
     #     Return 1
     # }
-    
+
     # az vm run-command invoke -g myResourceGroup -n myVm --command-id RunShellScript --scripts "sudo apt-get update && sudo apt-get install -y nginx"
     # if ((Get-AzContext) -eq $null) { Connect-AzAccount }
     # Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptPath '.\ComaeAzureIR.sh' -Parameter @{ClientId = $ClientId; ClientSecret = $ClientSecret}
@@ -499,12 +501,12 @@ Function Invoke-ComaeAwsVMWinAnalyze(
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
         Return 1
     }
-    
+
     if (!(Get-Module -ListAvailable -Name AWSPowerShell)) {
         Write-Error "You need to install AWS Tools for PowerShell. (Install-Module -Name AWSPowerShell.NetCore -AllowClobber)"
         Return $False
     }
-    
+
     if ((Get-AWSCredentials -ProfileName default) -eq $null) {
 	    if ([string]::IsNullOrEmpty($AccessKey) -or [string]::IsNullOrEmpty($SecretKey)) {
 	       Write-Error "You need to log in to your AWS account. Use -AccessKey and -SecretKey"
@@ -517,11 +519,11 @@ Function Invoke-ComaeAwsVMWinAnalyze(
     }
 
     Set-DefaultAWSRegion -Region $Region
-	    
+
     # Create a copy of ComaeRespond.ps1 on the remote machine's Temp folder.
     $content = Get-Content .\ComaeRespond.ps1 -Raw
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($content))
-    $Parameter = @{'commands'=@("`$encoded = '$b64'", 
+    $Parameter = @{'commands'=@("`$encoded = '$b64'",
                                 '$content = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($encoded))',
                                 '$tmpPath = [System.IO.Path]::GetTempPath()',
                                 '$tmpFileName = "comae" + $(Get-Date -Format yyyy-MM-dd) + ".ps1"'

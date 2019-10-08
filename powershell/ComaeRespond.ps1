@@ -1,6 +1,6 @@
 Param (
  [Parameter(Mandatory=$true)]
- [string]$token
+ [string]$Token
 )
 
 $hostname = "api.comae.com"
@@ -16,7 +16,7 @@ if (Test-Path -Path Comae-Toolkit) {
     Remove-Item Comae-Toolkit\* -Force -Recurse
 }
 
-$postParams = @{token=$token}
+$postParams = @{token=$Token}
 $Uri = "https://" + $hostname + "/tools/download"
 Invoke-WebRequest -Uri $Uri -Method POST -OutFile Comae-Toolkit.zip -Body $postParams
 

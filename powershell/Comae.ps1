@@ -456,7 +456,7 @@ Function Invoke-ComaeAzVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName
 ) {
-    $token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
+    $Token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
 
     if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
@@ -469,7 +469,7 @@ Function Invoke-ComaeAzVMWinAnalyze(
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{token=$token}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(
@@ -531,7 +531,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
                                 '$content | Out-File $tmpFile -Force',
                                 'Write-Host "Tmp file at: $tmpFile"',
                                 'Set-Location $tmpPath',
-                                "& `$tmpFile -ClientId '$ClientId' -ClientSecret '$ClientSecret'")}
+                                "& `$tmpFile -Token '$Token'")}
     try{
         $SSMCommand = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter $Parameter
     } catch {
@@ -558,9 +558,7 @@ Function Invoke-ComaeAwsVMLinAnalyze(
 }
 
 Function Invoke-ComaeADWinAnalyze(
-    [Parameter(Mandatory = $True)] [string] $ClientId,
-    [Parameter(Mandatory = $True)] [string] $ClientSecret,
-    [Parameter(Mandatory = $True)] [string] $ComputerName
+    [Parameter(Mandatory = $True)] [string] $Token
 ) {
     Write-Error "This current cmdlet is not implemented yet."
 
@@ -569,7 +567,7 @@ Function Invoke-ComaeADWinAnalyze(
         Return 1
     }
 
-    $clientArgs = ($ClientId, $ClientSecret)
+    $clientArgs = ($Token)
     if (Test-Connection -ComputerName $ComputerName -Quiet) {
         Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeAzureIR.ps1 -ArgumentList $clientArgs
     } else {

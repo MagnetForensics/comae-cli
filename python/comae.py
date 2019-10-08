@@ -168,8 +168,8 @@ if __name__ == "__main__":
         print(stardust_api.getApiKey(args.client_id, args.client_secret))
 
     elif args.dump_it:
-        if not util.checkAllArgsExist(args, ['comae_client_id', 'comae_client_secret', 'action']):
-            print("[COMAE] Please provide comae-client-id, comae-client-secret and action.")
+        if not util.checkAllArgsExist(args, ['action']):
+            print("[COMAE] Please provide an action.")
             exit(1)
         if args.file_url:
             handle_file(args.file_url, args, "dump")
@@ -179,8 +179,8 @@ if __name__ == "__main__":
             handle_file(filename, args, "dump")
 
     elif args.snap_it:
-        if not util.checkAllArgsExist(args, ['comae_client_id', 'comae_client_secret', 'action']):
-            print("[COMAE] Please provide comae-client-id, comae-client-secret and action.")
+        if not util.checkAllArgsExist(args, ['action']):
+            print("[COMAE] Please provide an action.")
             exit(1)
         if args.file_url:
             handle_file(args.file_url, args, "snap")

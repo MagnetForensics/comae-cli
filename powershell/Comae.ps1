@@ -520,6 +520,8 @@ Function Invoke-ComaeAwsVMWinAnalyze(
 
     Set-DefaultAWSRegion -Region $Region
 
+    $Token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
+
     # Create a copy of ComaeRespond.ps1 on the remote machine's Temp folder.
     $content = Get-Content .\ComaeRespond.ps1 -Raw
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($content))
@@ -569,7 +571,7 @@ Function Invoke-ComaeADWinAnalyze(
 
     $clientArgs = ($Token)
     if (Test-Connection -ComputerName $ComputerName -Quiet) {
-        Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeAzureIR.ps1 -ArgumentList $clientArgs
+        Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeRespond.ps1 -ArgumentList $clientArgs
     } else {
         Write-Error "Invoke-Command can not be used on the remote machine."
     }

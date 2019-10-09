@@ -84,11 +84,15 @@ def handle_file(file, args, filetype):
             print("Please provice a bucket name with --bucket")
             fail = True
 
-        if fail:
-            exit(1)
         
         if "gcp_creds_file" in args:
             os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = args.gcp_creds_file
+        
+        if not os.path.exists(os.environ['GOOGLE_APPLICATION_CREDENTIALS']):
+            print(f"[COMAE] GCP creds file {os.environ['GOOGLE_APPLICATION_CREDENTIALS']} does not exist")
+
+        if fail:
+            exit(1)
 
         cloud_upload.upload_gcp(args.bucket, file)
         print("[COMAE] Uploaded to GCP bucket")
@@ -168,8 +172,8 @@ if __name__ == "__main__":
         print(stardust_api.getApiKey(args.client_id, args.client_secret))
 
     elif args.dump_it:
-        if not util.checkAllArgsExist(args, ['comae_client_id', 'comae_client_secret', 'action']):
-            print("[COMAE] Please provide comae-client-id, comae-client-secret and action.")
+        if not util.checkAllArgsExist(args, ['action']):
+            print("[COMAE] Please provide an action.")
             exit(1)
         if args.file_url:
             handle_file(args.file_url, args, "dump")
@@ -179,8 +183,8 @@ if __name__ == "__main__":
             handle_file(filename, args, "dump")
 
     elif args.snap_it:
-        if not util.checkAllArgsExist(args, ['comae_client_id', 'comae_client_secret', 'action']):
-            print("[COMAE] Please provide comae-client-id, comae-client-secret and action.")
+        if not util.checkAllArgsExist(args, ['action']):
+            print("[COMAE] Please provide an action.")
             exit(1)
         if args.file_url:
             handle_file(args.file_url, args, "snap")

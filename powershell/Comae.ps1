@@ -502,7 +502,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
         Return 1
     }
 
-    if (!(Get-Module -ListAvailable -Name AWSPowerShell)) {
+    if (!(Get-Module -ListAvailable -Name AWSPowerShell.NetCore)) {
         Write-Error "You need to install AWS Tools for PowerShell. (Install-Module -Name AWSPowerShell.NetCore -AllowClobber)"
         Return $False
     }

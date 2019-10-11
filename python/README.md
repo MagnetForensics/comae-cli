@@ -28,10 +28,10 @@
 
 ## Upload to a S3 Bucket
 ### Memory dump
-`./comae.py --dump-it --action upload-gcp --gcp-creds-file /tmp/gcp_creds.json --bucket comae-dump`
+`./comae.py --dump-it --action upload-s3  --bucket comae-dump --aws-access-id AWSAccessKeyIDHere --aws-access-secret AWSAccessKeySecretHere`
 
 ### Memory snapshot
-`./comae.py --snap-it --action upload-gcp --gcp-creds-file /tmp/gcp_creds.json --bucket comae-snap`
+`./comae.py --snap-it --action upload-s3  --bucket comae-snap --aws-access-id AWSAccessKeyIDHere --aws-access-secret AWSAccessKeySecretHere`
 
 ## Upload to an Azure bucket
 ### Memory dump

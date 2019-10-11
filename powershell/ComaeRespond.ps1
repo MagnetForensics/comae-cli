@@ -31,7 +31,7 @@ if (Test-Path -Path Comae-Toolkit.zip) {
 
     Set-Location -Path  ".\Comae-Toolkit\$arch\"
     . .\Comae.ps1
-    Send-ComaeDumpFile -Key $token -Path $rootDir\Dumps -ItemType Directory -IsCompress
+    Send-ComaeDumpFile -Key $Token -Path $rootDir\Dumps -ItemType Directory -IsCompress
 
     Set-Location $rootDir
     # Clean everything.

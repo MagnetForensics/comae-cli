@@ -67,10 +67,16 @@ def handle_file(file, args, filetype):
         print("[COMAE] Uploading file to Comae Stardust")
 
         if filetype == "dump":
-            stardust_api.sendDumpToComae(file, api_key)
+            if args.file_url:
+                stardust_api.sendDumpUrlToComae(file, api_key)
+            else:
+                stardust_api.sendDumpToComae(file, api_key)
 
         if filetype == "snap":
-            stardust_api.sendSnapshotToComae(file, api_key)
+            if args.file_url:
+                stardust_api.sendSnapshotUrlToComae(file, api_key)
+            else:
+                stardust_api.sendSnapshotToComae(file, api_key)
 
         print("[COMAE] Uploaded to Comae Stardust")
     

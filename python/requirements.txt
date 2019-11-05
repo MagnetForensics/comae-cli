@@ -1,5 +1,5 @@
 requests
 google-cloud-storage
 azure
-azure-storage-blob
+azure-storage-blob==2.1.0
 boto3

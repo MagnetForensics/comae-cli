@@ -29,7 +29,7 @@ def dumpIt():
     subprocess.call([dumpIt_path, filename])
 
     print('[COMAE] Compressing image as "' + filename + '.zip"')
-    util.createZip(filename)
+    util.createZip(filename, '/proc/kallsyms')
     # subprocess.call(["zip", '-0', filename + ".zip", filename])
 
     print('[COMAE] Removing memory image file "' + filename + '"')

@@ -8,7 +8,7 @@
 #-------------------------------------------------------------------------------
 
 from __future__ import print_function
-import requests, time, subprocess, argparse, sys, os
+import requests, time, subprocess, argparse, sys, os, shutil
 import cloud_upload, util, stardust_api
 
 
@@ -26,7 +26,12 @@ def dumpIt():
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
 
     print('[COMAE] Saving memory image as "' + filename + '"')
-    subprocess.call([dumpIt_path, filename])
+
+    # See if we have ionice installed so that we don't have a big IO impact
+    if shutil.which('ionice'):
+        subprocess.call(['ionice', '-c3', dumpIt_path, filename])
+    else:
+        subprocess.call([dumpIt_path, filename])
 
     print('[COMAE] Compressing image as "' + filename + '.zip"')
     util.createZip(filename, '/proc/kallsyms')

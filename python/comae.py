@@ -24,6 +24,14 @@ def dumpIt():
     # the directory containing DumpIt
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
 
+    if not os.path.isfile(dumpIt_path):
+        print("Failed to find file: '{}'".format(dumpIt_path), file=sys.stderr)
+        exit(1)
+
+    if not os.access(dumpIt_path, os.X_OK):
+        print("File is not executable: '{}'".format(dumpIt_path), file=sys.stderr)
+        exit(1)
+
     print('[COMAE] Saving memory image as "' + filename + '"')
 
     # See if we have ionice installed so that we don't have a big IO impact

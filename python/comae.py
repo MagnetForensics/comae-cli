@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
 # comae.py
@@ -24,6 +23,14 @@ def dumpIt():
     # This way we can run the script from another path, we don't have to be in
     # the directory containing DumpIt
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
+
+    if not os.path.isfile(dumpIt_path):
+        print("Failed to find file: '{}'".format(dumpIt_path), file=sys.stderr)
+        exit(1)
+
+    if not os.access(dumpIt_path, os.X_OK):
+        print("File is not executable: '{}'".format(dumpIt_path), file=sys.stderr)
+        exit(1)
 
     print('[COMAE] Saving memory image as "' + filename + '"')
 

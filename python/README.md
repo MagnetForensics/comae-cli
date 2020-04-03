@@ -1,5 +1,13 @@
 # Comae Python
 
+## Install the dependencies
+```
+virtualenv -p python3 .
+source ./bin/activate
+pip3 install -r requirements.txt
+```
+When done, run `deactivate` to exit the `virtualenv` environment.
+
 ## Get the API key
 
 `./comae.py --client-id clientIdHere --client-secret clientSecretHere --get-api-key`

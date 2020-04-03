@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
 # comae.py
@@ -8,7 +7,7 @@
 #-------------------------------------------------------------------------------
 
 from __future__ import print_function
-import requests, time, subprocess, argparse, sys, os
+import requests, time, subprocess, argparse, sys, os, shutil
 import cloud_upload, util, stardust_api
 
 
@@ -25,11 +24,24 @@ def dumpIt():
     # the directory containing DumpIt
     dumpIt_path = os.path.dirname(os.path.realpath(__file__)) + "/DumpIt"
 
+    if not os.path.isfile(dumpIt_path):
+        print("Failed to find file: '{}'".format(dumpIt_path), file=sys.stderr)
+        exit(1)
+
+    if not os.access(dumpIt_path, os.X_OK):
+        print("File is not executable: '{}'".format(dumpIt_path), file=sys.stderr)
+        exit(1)
+
     print('[COMAE] Saving memory image as "' + filename + '"')
-    subprocess.call([dumpIt_path, filename])
+
+    # See if we have ionice installed so that we don't have a big IO impact
+    if shutil.which('ionice'):
+        subprocess.call(['ionice', '-c3', dumpIt_path, filename])
+    else:
+        subprocess.call([dumpIt_path, filename])
 
     print('[COMAE] Compressing image as "' + filename + '.zip"')
-    util.createZip(filename)
+    util.createZip(filename, '/proc/kallsyms')
     # subprocess.call(["zip", '-0', filename + ".zip", filename])
 
     print('[COMAE] Removing memory image file "' + filename + '"')
@@ -67,10 +79,16 @@ def handle_file(file, args, filetype):
         print("[COMAE] Uploading file to Comae Stardust")
 
         if filetype == "dump":
-            stardust_api.sendDumpToComae(file, api_key)
+            if args.file_url:
+                stardust_api.sendDumpUrlToComae(file, api_key)
+            else:
+                stardust_api.sendDumpToComae(file, api_key)
 
         if filetype == "snap":
-            stardust_api.sendSnapshotToComae(file, api_key)
+            if args.file_url:
+                stardust_api.sendSnapshotUrlToComae(file, api_key)
+            else:
+                stardust_api.sendSnapshotToComae(file, api_key)
 
         print("[COMAE] Uploaded to Comae Stardust")
     

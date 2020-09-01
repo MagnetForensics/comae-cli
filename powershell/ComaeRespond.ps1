@@ -1,9 +1,7 @@
 Param (
- [Parameter(Mandatory=$true)]
- [string]$Token
+ [Parameter(Mandatory=$true)][string]$Token,
+ [Parameter] [string] $Hostname="api.comae.com"
 )
-
-$hostname = "api.comae.com"
 
 $TempDir = [System.IO.Path]::GetTempPath()
 Set-Location $TempDir
@@ -17,7 +15,7 @@ if (Test-Path -Path Comae-Toolkit) {
 }
 
 $postParams = @{token=$Token}
-$Uri = "https://" + $hostname + "/tools/download"
+$Uri = "https://" + $Hostname + "/tools/download"
 Invoke-WebRequest -Uri $Uri -Method POST -OutFile Comae-Toolkit.zip -Body $postParams
 
 $rootDir = $pwd
@@ -31,7 +29,7 @@ if (Test-Path -Path Comae-Toolkit.zip) {
 
     Set-Location -Path  ".\Comae-Toolkit\$arch\"
     . .\Comae.ps1
-    Send-ComaeDumpFile -Key $Token -Path $rootDir\Dumps -ItemType Directory -IsCompress
+    Send-ComaeDumpFile -Key $Token -Path $rootDir\Dumps -ItemType Directory -IsCompress -Hostname $Hostname
 
     Set-Location $rootDir
     # Clean everything.

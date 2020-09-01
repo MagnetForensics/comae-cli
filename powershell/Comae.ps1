@@ -1,6 +1,4 @@
-﻿$hostname = "api.comae.com"
-
-Function Get-ComaeAPIKey(
+﻿Function Get-ComaeAPIKey(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret
     )
@@ -56,15 +54,18 @@ Function New-ComaeSnapshot(
 
     $SnapshotDirectory = "$Directory\$env:COMPUTERNAME-$Date-$Time"
 
-    Write-Output "Launching DumpIt.exe..."
+    Write-Host "Launching DumpIt.exe..."
 
-    .\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""
+    $out = iex '.\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""'
+
+    Return $SnapshotDirectory
 }
 
 Function Send-ComaeSnapshot(
     [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
-    [Parameter(Mandatory = $True)] [string] $ItemType
+    [Parameter(Mandatory = $True)] [string] $ItemType,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
     )
 {
     if ($ItemType -eq "Directory") {
@@ -86,9 +87,9 @@ Function Send-ComaeSnapshot(
 
         $SnapshotDirectory = "$Directory\$env:COMPUTERNAME-$Date-$Time"
 
-        Write-Output "Launching DumpIt.exe..."
+        Write-Host "Launching DumpIt.exe..."
 
-        .\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""
+        $out = iex '.\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""'
 
         $SnapshotFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.json.zip"
     }
@@ -149,9 +150,9 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $hostname + "/v1/upload/json"
+        $Uri = "https://" + $Hostname + "/v1/upload/json"
 
-        Write-Output "Uploading $SnapshotFile..."
+        Write-Host "Uploading $SnapshotFile..."
 
         do {
 
@@ -159,7 +160,7 @@ Content-Type: application/octet-stream
 
         } while ($Response.StatusCode -ne 200)
 
-        Write-Output "Done."
+        Write-Host "Done."
     }
 }
 
@@ -193,18 +194,19 @@ Function New-ComaeDumpFile(
 
     $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.$Extension"
 
-    Write-Output "Launching DumpIt.exe..."
+    Write-Host "Launching DumpIt.exe..."
 
-    .\DumpIt.exe /quiet $Compression /output $DumpFile
+    $out = iex '.\DumpIt.exe /quiet $Compression /output $DumpFile'
 
-    $DumpFile
+    Return $DumpFile
 }
 
 Function Send-ComaeDumpFile(
     [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
-    [Parameter(Mandatory = $False)] [switch] $IsCompress
+    [Parameter(Mandatory = $False)] [switch] $IsCompress,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
     )
 {
 
@@ -238,7 +240,7 @@ Function Send-ComaeDumpFile(
 
         $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.$Extension"
 
-        Write-Output "Launching DumpIt.exe..."
+        Write-Host "Launching DumpIt.exe..."
 
         .\DumpIt.exe /quiet $Compression /output $DumpFile
     }
@@ -333,7 +335,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileName&chunks=$NumberOfChunks"
+        $Uri = "https://" + $Hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileName&chunks=$NumberOfChunks"
 
         try {
 
@@ -357,7 +359,7 @@ Content-Type: application/octet-stream
         Write-Progress -Activity "Uploading $DumpFile..." -Status "$CurrentInMB MB / $FileSizeInMB MB" -PercentComplete (($CurrentInBytes / $FileSizeInBytes) * 100)
     }
 
-    $Uri = "https://" + $hostname + "/v1/upload/dump/completed"
+    $Uri = "https://" + $Hostname + "/v1/upload/dump/completed"
 
     $Body = @{
         "id" = "$UniqueFileId";
@@ -431,7 +433,7 @@ Function Convert-DumpFileToSnapshot(
 
         $DecompressedDumpFile = (Split-Path $FilePath) + "\" + "$FileName.dmp"
 
-        Write-Output "Launching Z2Dmp.exe..."
+        Write-Host "Launching Z2Dmp.exe..."
 
         .\Z2Dmp.exe $FilePath $DecompressedDumpFile
 
@@ -445,7 +447,7 @@ Function Convert-DumpFileToSnapshot(
 
     $SnapshotDirectory = "$Directory\$FileName-$Date-$Time"
 
-    Write-Output "Launching Dmp2Json.exe..."
+    Write-Host "Launching Dmp2Json.exe..."
 
     .\Dmp2Json.exe /Y srv*$SymbolPath*$SymbolServer /Z $FilePath /C "/all /archive /snapshot $SnapshotDirectory"
 }
@@ -454,7 +456,8 @@ Function Invoke-ComaeAzVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
-    [Parameter(Mandatory = $True)] [string] $VMName
+    [Parameter(Mandatory = $True)] [string] $VMName,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
 ) {
     $Token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
 
@@ -469,14 +472,15 @@ Function Invoke-ComaeAzVMWinAnalyze(
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
-    [Parameter(Mandatory = $True)] [string] $VMName
+    [Parameter(Mandatory = $True)] [string] $VMName,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
 ) {
     Write-Error "This current cmdlet is not implemented yet."
     # if ((Test-Path  '.\ComaeRespond.sh') -ne $True) {
@@ -495,7 +499,8 @@ Function Invoke-ComaeAwsVMWinAnalyze(
     [Parameter(Mandatory = $False)] [string] $AccessKey = $null,
     [Parameter(Mandatory = $False)] [string] $SecretKey = $null,
     [Parameter(Mandatory = $True)] [string] $Region,
-    [Parameter(Mandatory = $True)] [string] $InstanceId
+    [Parameter(Mandatory = $True)] [string] $InstanceId,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
 ) {
     if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
@@ -533,7 +538,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
                                 '$content | Out-File $tmpFile -Force',
                                 'Write-Host "Tmp file at: $tmpFile"',
                                 'Set-Location $tmpPath',
-                                "& `$tmpFile -Token '$Token'")}
+                                "& `$tmpFile -Token '$Token' -Hostname '$Hostname'")}
     try{
         $SSMCommand = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter $Parameter
     } catch {
@@ -554,13 +559,15 @@ Function Invoke-ComaeAwsVMLinAnalyze(
     [Parameter(Mandatory = $False)] [string] $AccessKey,
     [Parameter(Mandatory = $False)] [string] $SecretKey,
     [Parameter(Mandatory = $True)] [string] $Region,
-    [Parameter(Mandatory = $True)] [string] $InstanceId
+    [Parameter(Mandatory = $True)] [string] $InstanceId,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
 ) {
     Write-Error "This current cmdlet is not implemented yet."
 }
 
 Function Invoke-ComaeADWinAnalyze(
-    [Parameter(Mandatory = $True)] [string] $Token
+    [Parameter(Mandatory = $True)] [string] $Token,
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
 ) {
     Write-Error "This current cmdlet is not implemented yet."
 
@@ -569,7 +576,7 @@ Function Invoke-ComaeADWinAnalyze(
         Return 1
     }
 
-    $clientArgs = ($Token)
+    $clientArgs = ($Token, $Hostname)
     if (Test-Connection -ComputerName $ComputerName -Quiet) {
         Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeRespond.ps1 -ArgumentList $clientArgs
     } else {

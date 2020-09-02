@@ -43,8 +43,7 @@ Function New-ComaeSnapshot(
     }
 
     if ((Test-Path $Directory) -ne $True) {
-
-        New-Item $Directory -ItemType "Directory"
+        $out = New-Item $Directory -ItemType "Directory"
     }
 
     $DateTime = Get-Date
@@ -76,8 +75,7 @@ Function Send-ComaeSnapshot(
         $Directory = $Path
 
         if ((Test-Path $Directory) -ne $True) {
-
-            New-Item $Directory -ItemType "Directory"
+            $out = New-Item $Directory -ItemType "Directory"
         }
 
         $DateTime = Get-Date
@@ -175,7 +173,7 @@ Function New-ComaeDumpFile(
     }
 
     if ((Test-Path $Directory) -ne $True) {
-        New-Item $Directory -ItemType "Directory"
+        $out = New-Item $Directory -ItemType "Directory"
     }
 
     $DateTime = Get-Date
@@ -218,8 +216,7 @@ Function Send-ComaeDumpFile(
         $Directory = $Path
 
         if ((Test-Path $Directory) -ne $True) {
-
-            New-Item $Directory -ItemType "Directory"
+            $out = New-Item $Directory -ItemType "Directory"
         }
 
         $DateTime = Get-Date

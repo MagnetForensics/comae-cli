@@ -1,6 +1,6 @@
 Param (
  [Parameter(Mandatory=$true)][string]$Token,
- [Parameter] [string] $Hostname="api.comae.com"
+ [Parameter()] [string] $Hostname="api.comae.com"
 )
 
 $TempDir = [System.IO.Path]::GetTempPath()

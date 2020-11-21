@@ -64,6 +64,7 @@ Function Send-ComaeSnapshot(
     [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
     )
 {
@@ -110,6 +111,7 @@ Function Send-ComaeSnapshot(
     }
 
     $FileName = Split-Path $SnapshotFile -Leaf
+    $FileNameEscaped = ([uri]::EscapeDataString($FileName)).Replace('%','')
 
     $Boundary = "---powershellOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZ"
 
@@ -126,9 +128,9 @@ $BodyTemplate = @"
 --$Boundary
 Content-Disposition: form-data; name="filename"
 
-$FileName
+$FileNameEscaped
 --$Boundary
-Content-Disposition: form-data; name=`"file`"; filename=`"$FileName`"
+Content-Disposition: form-data; name=`"file`"; filename=`"$FileNameEscaped`"
 Content-Type: application/octet-stream
 
 {0}
@@ -148,7 +150,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $Hostname + "/v1/upload/json"
+        $Uri = "https://" + $Hostname + "/v1/upload/json?caseId=$CaseId"
 
         Write-Host "Uploading $SnapshotFile..."
 
@@ -203,6 +205,7 @@ Function Send-ComaeDumpFile(
     [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [switch] $IsCompress,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
     )
@@ -295,7 +298,9 @@ Function Send-ComaeDumpFile(
 
     $FileName = Split-Path $DumpFile -Leaf
 
-    $UniqueFileId = "$FileSizeInBytes-$FileName"
+    $FileNameEscaped = ([uri]::EscapeDataString($FileName)).Replace('%','')
+
+    $UniqueFileId = "$FileSizeInBytes-$FileNameEscaped"
 
     $Boundary = "---powershellOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZ"
 
@@ -332,7 +337,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $Hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileName&chunks=$NumberOfChunks"
+        $Uri = "https://" + $Hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileNameEscaped&chunks=$NumberOfChunks&caseId=$CaseId"
 
         try {
 
@@ -452,6 +457,7 @@ Function Convert-DumpFileToSnapshot(
 Function Invoke-ComaeAzVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
@@ -469,12 +475,13 @@ Function Invoke-ComaeAzVMWinAnalyze(
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname; CaseId=$CaseId}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
@@ -493,6 +500,7 @@ Function Invoke-ComaeAzVMLinAnalyze(
 Function Invoke-ComaeAwsVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $AccessKey = $null,
     [Parameter(Mandatory = $False)] [string] $SecretKey = $null,
     [Parameter(Mandatory = $True)] [string] $Region,
@@ -535,7 +543,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
                                 '$content | Out-File $tmpFile -Force',
                                 'Write-Host "Tmp file at: $tmpFile"',
                                 'Set-Location $tmpPath',
-                                "& `$tmpFile -Token '$Token' -Hostname '$Hostname'")}
+                                "& `$tmpFile -Token '$Token' -Hostname '$Hostname' -CaseId '$CaseId'")}
     try{
         $SSMCommand = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter $Parameter
     } catch {
@@ -553,6 +561,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
 Function Invoke-ComaeAwsVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $AccessKey,
     [Parameter(Mandatory = $False)] [string] $SecretKey,
     [Parameter(Mandatory = $True)] [string] $Region,
@@ -573,10 +582,78 @@ Function Invoke-ComaeADWinAnalyze(
         Return 1
     }
 
-    $clientArgs = ($Token, $Hostname)
+    $clientArgs = ($Token, $CaseId, $Hostname)
     if (Test-Connection -ComputerName $ComputerName -Quiet) {
         Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeRespond.ps1 -ArgumentList $clientArgs
     } else {
         Write-Error "Invoke-Command can not be used on the remote machine."
     }
+}
+
+Function Get-ComaeOrganizations (
+    [Parameter(Mandatory = $True)] [string] $Key # Returned by Get-ComaeAPIKey
+    )
+{
+    $Headers = @{
+        "Authorization" = "Bearer " + $Key;
+        "Content-Type" = "application/json; charset=utf-8";
+        "Accept" = "*/*";
+        "Accept-Encoding" = "gzip, deflate, br";
+        "pragma" = "no-cache";
+        "cache-control" = "no-cache"
+    }
+
+    # Always on central (api.comae.com)
+    $Uri = "https://api.comae.com/v1/venus/organizations"
+
+    $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
+
+    if ($Response.StatusCode -eq 200) {
+        ($Response.Content | ConvertFrom-JSON) | Format-Table -Property _id, name
+    }
+
+}
+
+Function Get-ComaeCases(
+    [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
+    [Parameter(Mandatory = $False)] [string] $OrganizationId="",
+    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    )
+{
+    $Headers = @{
+        "Authorization" = "Bearer " + $Key;
+        "Content-Type" = "application/json; charset=utf-8";
+        "Accept" = "*/*";
+        "Accept-Encoding" = "gzip, deflate, br";
+        "pragma" = "no-cache";
+        "cache-control" = "no-cache"
+    }
+
+    $Result = @()
+
+    if ([string]::IsNullOrEmpty($OrganizationId)) {
+        $Uri = "https://api.comae.com/v1/venus/organizations"
+
+        $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
+        if ($Response.StatusCode -eq 200) {
+            Foreach ($orgId in ($Response.Content | ConvertFrom-JSON)) {
+                $Uri = "https://" + $Hostname + "/v1/cases?organizationId=" + $orgId._id
+                $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
+
+                if ($Response.StatusCode -eq 200) {
+                    $Result += ($Response.Content | ConvertFrom-JSON)
+                }
+            }
+        }
+    } else {
+        $Uri = "https://" + $Hostname + "/v1/cases?organizationId=" + $organizationId
+
+        $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
+
+        if ($Response.StatusCode -eq 200) {
+            $Result += ($Response.Content | ConvertFrom-JSON)
+        }
+    }
+
+    $Result | Format-Table -Property organizationId, _id, name, description, creationDate, lastModificationDate, labels
 }

@@ -317,9 +317,9 @@ $BodyTemplate = @"
 --$Boundary
 Content-Disposition: form-data; name="filename"
 
-$FileName
+$FileNameEscaped
 --$Boundary
-Content-Disposition: form-data; name=`"file`"; filename=`"$FileName`"
+Content-Disposition: form-data; name=`"file`"; filename=`"$FileNameEscaped`"
 Content-Type: application/octet-stream
 
 {0}
@@ -341,7 +341,7 @@ Content-Type: application/octet-stream
 
         try {
 
-            Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
+            $Res = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
         }
         catch [System.Net.WebException] {
 
@@ -365,7 +365,7 @@ Content-Type: application/octet-stream
 
     $Body = @{
         "id" = "$UniqueFileId";
-        "filename" = "$FileName";
+        "filename" = "$FileNameEscaped";
         "chunks" = $NumberOfChunks
     }
 

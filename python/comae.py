@@ -74,21 +74,25 @@ def handle_file(file, args, filetype):
             print("Provide client_secret and client_id", file=sys.stderr)
             exit(1)
 
+        if not args.comae_case_id:
+            print("Provide the case id you want to send the image to", file=sys.stderr)
+            exit(1)
+
         print("[COMAE] Requesting Comae Stardust API key....")
         api_key = stardust_api.getApiKey(args.comae_client_id, args.comae_client_secret)
         print("[COMAE] Uploading file to Comae Stardust")
 
         if filetype == "dump":
             if args.file_url:
-                stardust_api.sendDumpUrlToComae(file, api_key)
+                stardust_api.sendDumpUrlToComae(file, api_key, args.comae_case_id, args.comae_hostname)
             else:
-                stardust_api.sendDumpToComae(file, api_key)
+                stardust_api.sendDumpToComae(file, api_key, args.comae_case_id, args.comae_hostname)
 
         if filetype == "snap":
             if args.file_url:
-                stardust_api.sendSnapshotUrlToComae(file, api_key)
+                stardust_api.sendSnapshotUrlToComae(file, api_key, args.comae_case_id, args.comae_hostname)
             else:
-                stardust_api.sendSnapshotToComae(file, api_key)
+                stardust_api.sendSnapshotToComae(file, api_key, args.comae_case_id, args.comae_hostname)
 
         print("[COMAE] Uploaded to Comae Stardust")
     
@@ -102,7 +106,6 @@ def handle_file(file, args, filetype):
             print("Please provice a bucket name with --bucket")
             fail = True
 
-        
         if "gcp_creds_file" in args:
             os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = args.gcp_creds_file
         
@@ -167,9 +170,16 @@ if __name__ == "__main__":
     )
     argparser.add_argument("--action", help='One of "store", "upload-comae", "upload-gcp", "upload-az", "upload-s3"', default="store")
     argparser.add_argument("--file-url", help="URL of a dump/snapshot file. The tool will not upload the local file if it is specified.")
+    argparser.add_argument("--file-local", help="URL of a dump/snapshot file. The tool will not upload the local file if it is specified.")
     argparser.add_argument("--bucket", help="Name of bucket to use if uploading to GCP / Azure / S3")
+    argparser.add_argument("--comae-case-id", help="Comae Case ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-client-id", help="Comae Client ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-client-secret", help="Comae Client Secret if uploading to Comae Stardust")
+    argparser.add_argument("--comae-hostname", help="Comae Client Secret if uploading to Comae Stardust", default="api.comae.com")
+
+    argparser.add_argument("--list-organizations", action="store_true", help="List oranizations for the account")
+    argparser.add_argument("--list-cases", action="store_true", help="List cases of all the orgs")
+
     argparser.add_argument("--gcp-creds-file", help="Path to file containing GCP credentials, if uploading to GCP")
     argparser.add_argument("--az-account-name", help="Account name if uploading to Azure")
     argparser.add_argument("--az-account-key", help="Account key if uploading to Azure")
@@ -177,18 +187,23 @@ if __name__ == "__main__":
     argparser.add_argument("--aws-access-secret", help="AWS access key secret")
     args = argparser.parse_args()
 
-    if not args.get_api_key and not args.dump_it and not args.snap_it:
+    if not args.action and (args.dump_it or args.snap_it):
+        print("[COMAE] No action provided. Please provide an action.")
         argparser.print_help()
         exit(1)
 
-    if not args.action and not args.get_api_key:
-        print("[COMAE] No action provided. Please provide an action.")
-        argparse.print_help()
-        exit(1)
-
     if args.get_api_key:
-        print(stardust_api.getApiKey(args.client_id, args.client_secret))
+        print(stardust_api.getApiKey(args.comae_client_id, args.comae_client_secret))
 
+    elif args.list_cases:
+        stardust_api.getCases(
+            stardust_api.getApiKey(args.comae_client_id, args.comae_client_secret),
+            args.comae_hostname
+        )
+    elif args.list_organizations:
+        stardust_api.getOrganizations(
+            stardust_api.getApiKey(args.comae_client_id, args.comae_client_secret)
+        )
     elif args.dump_it:
         if not util.checkAllArgsExist(args, ['action']):
             print("[COMAE] Please provide an action.")
@@ -197,7 +212,11 @@ if __name__ == "__main__":
             handle_file(args.file_url, args, "dump")
         else:
             print("[COMAE] Acquiring the memory image with Comae DumpIt...")
-            filename = dumpIt()
+            filename = ''
+            if args.file_local:
+                filename = args.file_local
+            else:
+                filename = dumpIt()
             handle_file(filename, args, "dump")
 
     elif args.snap_it:
@@ -207,5 +226,14 @@ if __name__ == "__main__":
         if args.file_url:
             handle_file(args.file_url, args, "snap")
         else:
-            filename = createLiveSnapshot()
+            filename = ''
+            if args.file_local:
+                filename = args.file_local
+            else:
+                filename = createLiveSnapshot()
             handle_file(filename, args, "snap")
+
+    else:
+        print("[COMAE] No action provided. Please provide an action.")
+        argparser.print_help()
+        exit(1)

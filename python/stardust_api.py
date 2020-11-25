@@ -9,7 +9,7 @@
 
 import requests, os, sys, math
 
-hostname = "api.comae.com"
+# hostname = "api.comae.com"
 
 def getApiKey(client_id, client_secret):
     print("[COMAE] Requesting Comae Stardust API key....")
@@ -32,21 +32,59 @@ def getApiKey(client_id, client_secret):
 
     return result_json["access_token"]
 
-
-def sendSnapshotToComae(filename, key):
+def getOrganizations(key):
     headers = {"Authorization": "Bearer " + key}
-    url = "https://" + hostname + "/v1/upload/json"
+    # Central API
+    url = "https://api.comae.com/v1/venus/organizations"
+    res = requests.get(url, headers=headers)
+    result_json = res.json()
+
+    print("     Organization Id           Name")
+    print("     ---------------           ----")
+    for org in result_json:
+        print("     %s  %s" % (org["_id"], org["name"]))
+    print("")
+
+    return result_json
+
+def getCases(key, hostname="api.comae.com"):
+    headers = {"Authorization": "Bearer " + key}
+    url = "https://api.comae.com/v1/venus/organizations"
+    res = requests.get(url, headers=headers)
+    orgs = res.json()
+
+    cases = []
+
+    for org in orgs:
+        url = "https://%s/v1/cases?organizationId=%s" % (hostname, org["_id"])
+        res = requests.get(url, headers=headers)
+        result_json = res.json()
+        for case in result_json:
+            cases.append(case)
+
+    print("     organizationId           _id                      name          description             creationDate             lastModificationDate     labels")
+    print("     --------------           ---                      ----          -----------             ------------             --------------------     ------")
+    for case in cases:
+        # print(case)
+        print("     %s %s %-13s %-23s %s %s %s" % (case["organizationId"], case["_id"], case["name"], case["description"], case["creationDate"], case["lastModificationDate"], ', '.join(case["labels"])))
+
+    print("")
+
+    return case
+
+def sendSnapshotToComae(filename, key, caseId, hostname="api.comae.com"):
+    headers = {"Authorization": "Bearer " + key}
+    url = "https://%s/v1/upload/json?caseId=%s" % (hostname, caseId)
     files = {os.path.basename(filename): open(filename, "rb")}
     print("\r[COMAE] Uploading JSON archive to Comae Stardust...")
     res = requests.post(url, headers=headers, files=files)
+    return res
 
-def sendSnapshotUrlToComae(fileUrl, key):
-    global hostname
-
+def sendSnapshotUrlToComae(fileUrl, key, caseId, hostname="api.comae.com"):
     headers = {"Authorization": "Bearer " + key}
 
     print("\r[COMAE] Sending snapshot file URL to Comae Stardust...")
-    url = "https://%s/v1/upload/json/by-url" % (hostname)
+    url = "https://%s/v1/upload/json/by-url?caseId=%s" % (hostname, caseId)
     body = {"url": fileUrl}
     res = requests.post(url, headers=headers, json=body)
 
@@ -57,9 +95,7 @@ def sendSnapshotUrlToComae(fileUrl, key):
 
     print("\n[COMAE] Upload complete!")
 
-def sendDumpToComae(filename, key):
-    global hostname
-
+def sendDumpToComae(filename, key, caseId, hostname="api.comae.com"):
     file = open(filename, "rb")
     fileSize = os.path.getsize(filename)
     bufferSize = 32 * 1024 * 1024
@@ -81,8 +117,8 @@ def sendDumpToComae(filename, key):
         # When it's the last chunk the size can be smaller than the buffer
         chunkSize = len(chunk)
         url = (
-            "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d"
-            % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount)
+            "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d&caseId=%s"
+            % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount, caseId)
         )
 
         form_data = {
@@ -109,13 +145,11 @@ def sendDumpToComae(filename, key):
 
     print("\n[COMAE] Upload complete!")
 
-def sendDumpUrlToComae(fileUrl, key):
-    global hostname
-
+def sendDumpUrlToComae(fileUrl, key, caseId, hostname="api.comae.com"):
     headers = {"Authorization": "Bearer " + key}
 
     print("\r[COMAE] Sending dump file URL to Comae Stardust...")
-    url = "https://%s/v1/upload/dump/by-url" % (hostname)
+    url = "https://%s/v1/upload/dump/by-url?caseId=%s" % (hostname, caseId)
     body = {"url": fileUrl}
     res = requests.post(url, headers=headers, json=body)
 

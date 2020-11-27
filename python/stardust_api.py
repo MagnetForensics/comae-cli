@@ -72,19 +72,19 @@ def getCases(key, hostname="api.comae.com"):
 
     return case
 
-def sendSnapshotToComae(filename, key, caseId, hostname="api.comae.com"):
+def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="api.comae.com"):
     headers = {"Authorization": "Bearer " + key}
-    url = "https://%s/v1/upload/json?caseId=%s" % (hostname, caseId)
+    url = "https://%s/v1/upload/json?organizationId=%s&caseId=%s" % (hostname, organizationId, caseId)
     files = {os.path.basename(filename): open(filename, "rb")}
     print("\r[COMAE] Uploading JSON archive to Comae Stardust...")
     res = requests.post(url, headers=headers, files=files)
     return res
 
-def sendSnapshotUrlToComae(fileUrl, key, caseId, hostname="api.comae.com"):
+def sendSnapshotUrlToComae(fileUrl, key, organizationId, caseId, hostname="api.comae.com"):
     headers = {"Authorization": "Bearer " + key}
 
     print("\r[COMAE] Sending snapshot file URL to Comae Stardust...")
-    url = "https://%s/v1/upload/json/by-url?caseId=%s" % (hostname, caseId)
+    url = "https://%s/v1/upload/json/by-url?organizationId=%s&caseId=%s" % (hostname, organizationId, caseId)
     body = {"url": fileUrl}
     res = requests.post(url, headers=headers, json=body)
 
@@ -95,7 +95,7 @@ def sendSnapshotUrlToComae(fileUrl, key, caseId, hostname="api.comae.com"):
 
     print("\n[COMAE] Upload complete!")
 
-def sendDumpToComae(filename, key, caseId, hostname="api.comae.com"):
+def sendDumpToComae(filename, key, organizationId, caseId, hostname="api.comae.com"):
     file = open(filename, "rb")
     fileSize = os.path.getsize(filename)
     bufferSize = 32 * 1024 * 1024
@@ -117,8 +117,8 @@ def sendDumpToComae(filename, key, caseId, hostname="api.comae.com"):
         # When it's the last chunk the size can be smaller than the buffer
         chunkSize = len(chunk)
         url = (
-            "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d&caseId=%s"
-            % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount, caseId)
+            "https://%s/v1/upload/dump/chunks?chunkSize=%d&chunk=%d&id=%s&filename=%s&chunks=%d&organizationId=%s&caseId=%s"
+            % (hostname, chunkSize, chunkNumber, uniqueId, filename, chunkCount, organizationId, caseId)
         )
 
         form_data = {
@@ -145,11 +145,11 @@ def sendDumpToComae(filename, key, caseId, hostname="api.comae.com"):
 
     print("\n[COMAE] Upload complete!")
 
-def sendDumpUrlToComae(fileUrl, key, caseId, hostname="api.comae.com"):
+def sendDumpUrlToComae(fileUrl, key, organizationId, caseId, hostname="api.comae.com"):
     headers = {"Authorization": "Bearer " + key}
 
     print("\r[COMAE] Sending dump file URL to Comae Stardust...")
-    url = "https://%s/v1/upload/dump/by-url?caseId=%s" % (hostname, caseId)
+    url = "https://%s/v1/upload/dump/by-url?organizationId=%s&caseId=%s" % (hostname, organizationId, caseId)
     body = {"url": fileUrl}
     res = requests.post(url, headers=headers, json=body)
 

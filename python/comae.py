@@ -75,7 +75,11 @@ def handle_file(file, args, filetype):
             exit(1)
 
         if not args.comae_case_id:
-            print("Provide the case id you want to send the image to", file=sys.stderr)
+            print("Provide the case id (--comae-case-id) you want to send the image to", file=sys.stderr)
+            exit(1)
+
+        if not args.comae_organization_id:
+            print("Provide the organization id (--comae-organization-id) you want to send the image to", file=sys.stderr)
             exit(1)
 
         print("[COMAE] Requesting Comae Stardust API key....")
@@ -84,15 +88,15 @@ def handle_file(file, args, filetype):
 
         if filetype == "dump":
             if args.file_url:
-                stardust_api.sendDumpUrlToComae(file, api_key, args.comae_case_id, args.comae_hostname)
+                stardust_api.sendDumpUrlToComae(file, api_key, args.comae_organization_id, args.comae_case_id, args.comae_hostname)
             else:
-                stardust_api.sendDumpToComae(file, api_key, args.comae_case_id, args.comae_hostname)
+                stardust_api.sendDumpToComae(file, api_key, args.comae_organization_id, args.comae_case_id, args.comae_hostname)
 
         if filetype == "snap":
             if args.file_url:
-                stardust_api.sendSnapshotUrlToComae(file, api_key, args.comae_case_id, args.comae_hostname)
+                stardust_api.sendSnapshotUrlToComae(file, api_key, args.comae_organization_id, args.comae_case_id, args.comae_hostname)
             else:
-                stardust_api.sendSnapshotToComae(file, api_key, args.comae_case_id, args.comae_hostname)
+                stardust_api.sendSnapshotToComae(file, api_key, args.comae_organization_id, args.comae_case_id, args.comae_hostname)
 
         print("[COMAE] Uploaded to Comae Stardust")
     
@@ -172,6 +176,7 @@ if __name__ == "__main__":
     argparser.add_argument("--file-url", help="URL of a dump/snapshot file. The tool will not upload the local file if it is specified.")
     argparser.add_argument("--file-local", help="URL of a dump/snapshot file. The tool will not upload the local file if it is specified.")
     argparser.add_argument("--bucket", help="Name of bucket to use if uploading to GCP / Azure / S3")
+    argparser.add_argument("--comae-organization-id", help="Comae Organization ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-case-id", help="Comae Case ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-client-id", help="Comae Client ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-client-secret", help="Comae Client Secret if uploading to Comae Stardust")

@@ -1,5 +1,6 @@
 Param (
  [Parameter(Mandatory=$true)][string]$Token,
+ [Parameter(Mandatory=$true)][string]$OrganizationId,
  [Parameter(Mandatory=$true)][string]$CaseId,
  [Parameter()] [string] $Hostname="api.comae.com"
 )
@@ -30,7 +31,7 @@ if (Test-Path -Path Comae-Toolkit.zip) {
 
     Set-Location -Path  ".\Comae-Toolkit\$arch\"
     . .\Comae.ps1
-    Send-ComaeDumpFile -Key $Token -Path $rootDir\Dumps -ItemType Directory -IsCompress -Hostname $Hostname -CaseId $CaseId
+    Send-ComaeDumpFile -Key $Token -Path $rootDir\Dumps -ItemType Directory -IsCompress -Hostname $Hostname -OrganizationId $OrganizationId -CaseId $CaseId
 
     Set-Location $rootDir
     # Clean everything.

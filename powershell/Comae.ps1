@@ -64,6 +64,7 @@ Function Send-ComaeSnapshot(
     [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
     )
@@ -150,7 +151,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $Hostname + "/v1/upload/json?caseId=$CaseId"
+        $Uri = "https://" + $Hostname + "/v1/upload/json?organizationId=$OrganizationId&caseId=$CaseId"
 
         Write-Host "Uploading $SnapshotFile..."
 
@@ -205,6 +206,7 @@ Function Send-ComaeDumpFile(
     [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [switch] $IsCompress,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
@@ -337,7 +339,7 @@ Content-Type: application/octet-stream
 
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $Hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileNameEscaped&chunks=$NumberOfChunks&caseId=$CaseId"
+        $Uri = "https://" + $Hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileNameEscaped&chunks=$NumberOfChunks&organizationId=$OrganizationId&&caseId=$CaseId"
 
         try {
 
@@ -457,6 +459,7 @@ Function Convert-DumpFileToSnapshot(
 Function Invoke-ComaeAzVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName,
@@ -475,12 +478,13 @@ Function Invoke-ComaeAzVMWinAnalyze(
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname; CaseId=$CaseId}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname; OrganizationId=$OrganizationId, CaseId=$CaseId}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName,
@@ -500,6 +504,7 @@ Function Invoke-ComaeAzVMLinAnalyze(
 Function Invoke-ComaeAwsVMWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $AccessKey = $null,
     [Parameter(Mandatory = $False)] [string] $SecretKey = $null,
@@ -543,7 +548,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
                                 '$content | Out-File $tmpFile -Force',
                                 'Write-Host "Tmp file at: $tmpFile"',
                                 'Set-Location $tmpPath',
-                                "& `$tmpFile -Token '$Token' -Hostname '$Hostname' -CaseId '$CaseId'")}
+                                "& `$tmpFile -Token '$Token' -Hostname '$Hostname' -OrganizationId '$OrganizationId' -CaseId '$CaseId'")}
     try{
         $SSMCommand = Send-SSMCommand -InstanceId $InstanceId -DocumentName AWS-RunPowerShellScript -Comment 'Cloud Incident Response with Comae' -Parameter $Parameter
     } catch {
@@ -561,6 +566,7 @@ Function Invoke-ComaeAwsVMWinAnalyze(
 Function Invoke-ComaeAwsVMLinAnalyze(
     [Parameter(Mandatory = $True)] [string] $ClientId,
     [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $AccessKey,
     [Parameter(Mandatory = $False)] [string] $SecretKey,
@@ -573,6 +579,8 @@ Function Invoke-ComaeAwsVMLinAnalyze(
 
 Function Invoke-ComaeADWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $Token,
+    [Parameter(Mandatory = $True)] [string] $OrganizationId,
+    [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
 ) {
     Write-Error "This current cmdlet is not implemented yet."
@@ -582,7 +590,7 @@ Function Invoke-ComaeADWinAnalyze(
         Return 1
     }
 
-    $clientArgs = ($Token, $CaseId, $Hostname)
+    $clientArgs = ($Token, $OrganizationId, $CaseId, $Hostname)
     if (Test-Connection -ComputerName $ComputerName -Quiet) {
         Invoke-Command -ComputerName $ComputerName -FilePath .\ComaeRespond.ps1 -ArgumentList $clientArgs
     } else {

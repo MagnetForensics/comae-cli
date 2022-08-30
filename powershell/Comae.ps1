@@ -451,7 +451,7 @@ Function Get-ComaeOrganizations (
     $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
     if ($Response.StatusCode -eq 200) {
-        ($Response.Content | ConvertFrom-JSON) | Format-Table -Property id, name
+        ($Response.Content | ConvertFrom-JSON) | Format-Table -Property id, name, clearanceLevel
     }
 
 }
@@ -511,5 +511,5 @@ Function Get-ComaeCases(
         }
     }
 
-    $Result | Format-Table -Property organizationId, id, name, description, creationDate, labels
+    $Result | Format-Table -Property organizationId, id, clearanceLevel, name, description, creationDate, labels
 }

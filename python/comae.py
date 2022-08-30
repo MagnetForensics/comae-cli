@@ -158,7 +158,7 @@ def handle_file(file, args, filetype):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Comae Stardust Client")
     argparser.add_argument(
-        "-k", "--get-api-key", action="store_true", help="Get Comae Stardust API Key"
+        "-k", "--get-api-key", action="store_true", help="Get Comae Stardust API Token"
     )
     argparser.add_argument(
         "-d",
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     argparser.add_argument("--comae-case-id", help="Comae Case ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-client-id", help="Comae Client ID if uploading to Comae Stardust")
     argparser.add_argument("--comae-client-secret", help="Comae Client Secret if uploading to Comae Stardust")
-    argparser.add_argument("--comae-hostname", help="Comae Client Secret if uploading to Comae Stardust", default="api.comae.com")
+    argparser.add_argument("--comae-hostname", help="Comae Client Secret if uploading to Comae Stardust", default="beta.comae.tech")
 
     argparser.add_argument("--list-organizations", action="store_true", help="List oranizations for the account")
     argparser.add_argument("--list-cases", action="store_true", help="List cases of all the orgs")

@@ -1,175 +1,29 @@
-﻿Function Get-ComaeAPIKey(
-    [Parameter(Mandatory = $True)] [string] $ClientId,
-    [Parameter(Mandatory = $True)] [string] $ClientSecret
-    )
-{
-    $Headers = @{
-        "Content-Type" = "application/json"
-        "Cache-Control" = "no-cache"
-    }
-
-    $Body = @{
-        "grant_type" = "client_credentials"
-        "client_id" = $ClientId
-        "client_secret" = $ClientSecret
-        "audience" = "JHYFRulOwjLslg87tUt4bCT8i4O3yBsm"
-    }
-
-    $Key = ""
-
-    $Uri = "https://comae.auth0.com/oauth/token"
-
-    $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body ($Body|ConvertTo-Json) -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
-
-    if ($Response.StatusCode -eq 200) {
-        $Key = ($Response.Content | ConvertFrom-JSON).access_token
-    }
-
-    Return $Key
-}
-
-Function New-ComaeSnapshot(
-    [Parameter(Mandatory = $True)] [string] $Directory
-    )
-{
-    if ((Test-Path  '.\DumpIt.exe') -ne $True) {
-        Write-Error "This script needs to be in the same directory as '.\DumpIt.exe'."
-        Return 1
-    }
-
-    if ((Test-Path  '.\Dmp2Json.exe') -ne $True) {
-        Write-Error "This script needs to be in the same directory as '.\Dmp2Json.exe'."
-        Return 1
-    }
-
-    if ((Test-Path $Directory) -ne $True) {
-        $out = New-Item $Directory -ItemType "Directory"
-    }
-
-    $DateTime = Get-Date
-
-    $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
-    $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
-
-    $SnapshotDirectory = "$Directory\$env:COMPUTERNAME-$Date-$Time"
-
-    Write-Host "Launching DumpIt.exe..."
-
-    $out = iex '.\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""'
-
-    Return $SnapshotDirectory
-}
-
-Function Send-ComaeSnapshot(
-    [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
-    [Parameter(Mandatory = $True)] [string] $Path,
-    [Parameter(Mandatory = $True)] [string] $ItemType,
-    [Parameter(Mandatory = $True)] [string] $OrganizationId,
-    [Parameter(Mandatory = $True)] [string] $CaseId,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
-    )
-{
-    if ($ItemType -eq "Directory") {
-        if ((Test-Path  '.\DumpIt.exe') -ne $True) {
-          Write-Error "This script needs to be in the same directory as '.\DumpIt.exe'."
-            Return 1
-       }
-        $Directory = $Path
-
-        if ((Test-Path $Directory) -ne $True) {
-            $out = New-Item $Directory -ItemType "Directory"
-        }
-
-        $DateTime = Get-Date
-
-        $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
-        $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
-
-        $SnapshotDirectory = "$Directory\$env:COMPUTERNAME-$Date-$Time"
-
-        Write-Host "Launching DumpIt.exe..."
-
-        $out = iex '.\DumpIt.exe /L /A Dmp2Json.exe /C "/Y srv*C:\Symbols*http://msdl.microsoft.com/download/symbols /C \"/live /all /archive /snapshot $SnapshotDirectory""'
-
-        $SnapshotFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.json.zip"
-    }
-    elseif ($ItemType -eq "File") {
-
-        $SnapshotFile = $Path
-    }
-    else {
-
-        Write-Error "Please provide -ItemType parameter as Directory or File."
-
-        Return 1
-    }
-
-    if ((Test-Path $SnapshotFile) -ne $True) {
-
-        Write-Error "Could not find snapshot file '$SnapshotFile'"
-
-        Return 1
-    }
-
-    $FileName = Split-Path $SnapshotFile -Leaf
-    $FileNameEscaped = ([uri]::EscapeDataString($FileName)).Replace('%','')
-
-    $Boundary = "---powershellOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZ"
-
-    $Headers = @{
-        "Authorization" = "Bearer " + $Key;
-        "Content-Type" = "multipart/form-data; boundary=$Boundary";
-        "Accept" = "*/*";
-        "Accept-Encoding" = "gzip, deflate, br";
-        "pragma" = "no-cache";
-        "cache-control" = "no-cache"
-    }
-
-$BodyTemplate = @"
---$Boundary
-Content-Disposition: form-data; name="filename"
-
-$FileNameEscaped
---$Boundary
-Content-Disposition: form-data; name=`"file`"; filename=`"$FileNameEscaped`"
-Content-Type: application/octet-stream
-
-{0}
---$Boundary--
-`r`n
-"@
-
-    $GetEncoding = [System.Text.Encoding]::GetEncoding("iso-8859-1")
-
-    $BufferSize = (Get-Item $SnapshotFile).Length
-
-    if ($BufferSize) {
-
-        $Buffer = [System.IO.File]::ReadAllBytes($SnapshotFile)
-
-        $Content = $GetEncoding.GetString($Buffer, 0, $BufferSize)
-
-        $Body = $BodyTemplate -f $Content
-
-        $Uri = "https://" + $Hostname + "/v1/upload/json?organizationId=$OrganizationId&caseId=$CaseId"
-
-        Write-Host "Uploading $SnapshotFile..."
-
-        do {
-
-            $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
-
-        } while ($Response.StatusCode -ne 200)
-
-        Write-Host "Done."
-    }
-}
+﻿
+# Copyright (c) Magnet Forensics, Inc.
+# Licensed under the MIT License.
 
 Function New-ComaeDumpFile(
     [Parameter(Mandatory = $True)] [string] $Directory,
     [Parameter(Mandatory = $False)] [switch] $IsCompress
     )
 {
+<#
+.SYNOPSIS
+    Create a full memory Microsoft crash dump.
+
+.DESCRIPTION
+    This script creates a memory image into the target directory using DumpIt. 
+
+.PARAMETER Directory
+    Destination folder for the output file.
+
+.PARAMETER IsCompress
+    Enables compression for the output file. Useful for large memory images.
+
+.EXAMPLE
+    Creates a compressed memory image into the given target folder.
+    PS C:\> New-ComaeDumpFile -Directory C:\Dumps -IsCompress
+#>
     if ((Test-Path  '.\DumpIt.exe') -ne $True) {
         Write-Error "This script needs to be in the same directory as '.\DumpIt.exe'."
         Return 1
@@ -203,16 +57,29 @@ Function New-ComaeDumpFile(
 }
 
 Function Send-ComaeDumpFile(
-    [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
+    [Parameter(Mandatory = $True)] [string] $Token,
     [Parameter(Mandatory = $True)] [string] $Path,
     [Parameter(Mandatory = $True)] [string] $ItemType,
     [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [switch] $IsCompress,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
     )
 {
+<#
+.SYNOPSIS
+    Send an input file to the Comae Platform.
 
+.DESCRIPTION
+    If the input path provided is a folder, the memory image will be generated by DumpIt then sent.
+
+.PARAMETER Token
+    Generated on the Comae platform UI interface.
+
+.EXAMPLE
+    Example syntax for running the script or function
+    PS C:\> Send-ComaeDumpFile -
+#>
     if ($ItemType -eq "Directory") {
         if ((Test-Path  '.\DumpIt.exe') -ne $True) {
           Write-Error "This script needs to be in the same directory as  '.\DumpIt.exe' script."
@@ -307,7 +174,7 @@ Function Send-ComaeDumpFile(
     $Boundary = "---powershellOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZ"
 
     $Headers = @{
-        "Authorization" = "Bearer " + $Key;
+        "Authorization" = "Bearer " + $Token;
         "Content-Type" = "multipart/form-data; boundary=$Boundary";
         "Accept" = "*/*";
         "Accept-Encoding" = "gzip, deflate, br";
@@ -389,84 +256,27 @@ Content-Type: application/octet-stream
     $DumpFile
 }
 
-Function Convert-DumpFileToSnapshot(
-    [Parameter(Mandatory = $True)] [string] $FilePath,
-    [Parameter(Mandatory = $True)] [string] $Directory,
-    [Parameter(Mandatory = $False)] [string] $SymbolPath,
-    [Parameter(Mandatory = $False)] [string] $SymbolServer
-    )
-{
-    if ((Test-Path  '.\Z2Dmp.exe') -ne $True) {
-        Write-Error "This script needs to be in the same directory as '.\Z2Dmp.exe'."
-        Return 1
-    }
-
-    if ((Test-Path  '.\Dmp2Json.exe') -ne $True) {
-        Write-Error "This script needs to be in the same directory as '.\Dmp2Json.exe'."
-        Return 1
-    }
-
-    if ((Test-Path $FilePath) -ne $True) {
-
-        Write-Error "Could not find dump file '$FilePath'"
-
-        Return 1
-    }
-
-    if ((Test-Path $Directory) -ne $True) {
-
-        Write-Error "Could not find directory '$Directory'"
-
-        Return 1
-    }
-
-    if (!$SymbolPath) {
-
-        $SymbolPath = "C:\Symbols"
-    }
-
-    if (!$SymbolServer) {
-
-        $SymbolServer = "https://msdl.microsoft.com/download/symbols"
-    }
-
-    $FileName = (Get-Item $FilePath).BaseName
-    $Extension = (Get-Item $FilePath).Extension
-
-    if ($Extension -eq ".zdmp") {
-
-        $DecompressedDumpFile = (Split-Path $FilePath) + "\" + "$FileName.dmp"
-
-        Write-Host "Launching Z2Dmp.exe..."
-
-        .\Z2Dmp.exe $FilePath $DecompressedDumpFile
-
-        $FilePath = $DecompressedDumpFile
-    }
-
-    $DateTime = Get-Date
-
-    $Date = [String]::Format("{0}-{1:00}-{2:00}", $DateTime.Year, $DateTime.Month, $DateTime.Day)
-    $Time = [String]::Format("{0:00}-{1:00}-{2:00}", $DateTime.Hour, $DateTime.Minute, $DateTime.Second)
-
-    $SnapshotDirectory = "$Directory\$FileName-$Date-$Time"
-
-    Write-Host "Launching Dmp2Json.exe..."
-
-    .\Dmp2Json.exe /Y srv*$SymbolPath*$SymbolServer /Z $FilePath /C "/all /archive /snapshot $SnapshotDirectory"
-}
-
 Function Invoke-ComaeAzVMWinAnalyze(
-    [Parameter(Mandatory = $True)] [string] $ClientId,
-    [Parameter(Mandatory = $True)] [string] $ClientSecret,
-    [Parameter(Mandatory = $True)] [string] $OrganizationId,
+    [Parameter(Mandatory = $True)] [string] 
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
 ) {
-    $Token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
+<#
+.SYNOPSIS
+    What the script does!
 
+.DESCRIPTION
+    A more detailed description of the script
+
+.PARAMETER Param1
+    Details on parameters to be used by the script.
+
+.EXAMPLE
+    Example syntax for running the script or function
+    PS C:\> Example
+#>
     if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
         Return $False
@@ -478,17 +288,16 @@ Function Invoke-ComaeAzVMWinAnalyze(
     }
 
     if ((Get-AzContext) -eq $null) { Connect-AzAccount }
-    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname; OrganizationId=$OrganizationId, CaseId=$CaseId}
+    Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunPowerShellScript' -ScriptPath '.\ComaeRespond.ps1' -Parameter @{Token=$Token; Hostname=$Hostname; OrganizationId=$OrganizationId; CaseId=$CaseId}
 }
 
 Function Invoke-ComaeAzVMLinAnalyze(
-    [Parameter(Mandatory = $True)] [string] $ClientId,
-    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $Token,
     [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $True)] [string] $ResourceGroupName,
     [Parameter(Mandatory = $True)] [string] $VMName,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
 ) {
     Write-Error "This current cmdlet is not implemented yet."
     # if ((Test-Path  '.\ComaeRespond.sh') -ne $True) {
@@ -502,15 +311,14 @@ Function Invoke-ComaeAzVMLinAnalyze(
 }
 
 Function Invoke-ComaeAwsVMWinAnalyze(
-    [Parameter(Mandatory = $True)] [string] $ClientId,
-    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $Token,
     [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $AccessKey = $null,
     [Parameter(Mandatory = $False)] [string] $SecretKey = $null,
     [Parameter(Mandatory = $True)] [string] $Region,
     [Parameter(Mandatory = $True)] [string] $InstanceId,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
 ) {
     if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
         Write-Error "This script needs to be in the same directory as '.\ComaeRespond.ps1'."
@@ -534,8 +342,6 @@ Function Invoke-ComaeAwsVMWinAnalyze(
     }
 
     Set-DefaultAWSRegion -Region $Region
-
-    $Token = Get-ComaeAPIKey -ClientId $ClientId -ClientSecret $ClientSecret
 
     # Create a copy of ComaeRespond.ps1 on the remote machine's Temp folder.
     $content = Get-Content .\ComaeRespond.ps1 -Raw
@@ -564,15 +370,14 @@ Function Invoke-ComaeAwsVMWinAnalyze(
 }
 
 Function Invoke-ComaeAwsVMLinAnalyze(
-    [Parameter(Mandatory = $True)] [string] $ClientId,
-    [Parameter(Mandatory = $True)] [string] $ClientSecret,
+    [Parameter(Mandatory = $True)] [string] $Token,
     [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
     [Parameter(Mandatory = $False)] [string] $AccessKey,
     [Parameter(Mandatory = $False)] [string] $SecretKey,
     [Parameter(Mandatory = $True)] [string] $Region,
     [Parameter(Mandatory = $True)] [string] $InstanceId,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
 ) {
     Write-Error "This current cmdlet is not implemented yet."
 }
@@ -581,8 +386,22 @@ Function Invoke-ComaeADWinAnalyze(
     [Parameter(Mandatory = $True)] [string] $Token,
     [Parameter(Mandatory = $True)] [string] $OrganizationId,
     [Parameter(Mandatory = $True)] [string] $CaseId,
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
 ) {
+<#
+.SYNOPSIS
+    What the script does!
+
+.DESCRIPTION
+    A more detailed description of the script
+
+.PARAMETER Param1
+    Details on parameters to be used by the script.
+
+.EXAMPLE
+    Example syntax for running the script or function
+    PS C:\> Example
+#>
     Write-Error "This current cmdlet is not implemented yet."
 
     if ((Test-Path  '.\ComaeRespond.ps1') -ne $True) {
@@ -599,11 +418,26 @@ Function Invoke-ComaeADWinAnalyze(
 }
 
 Function Get-ComaeOrganizations (
-    [Parameter(Mandatory = $True)] [string] $Key # Returned by Get-ComaeAPIKey
+    [Parameter(Mandatory = $True)] [string] $Token, # Returned by Get-ComaeAPIToken,
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
     )
 {
+<#
+.SYNOPSIS
+    What the script does!
+
+.DESCRIPTION
+    A more detailed description of the script
+
+.PARAMETER Param1
+    Details on parameters to be used by the script.
+
+.EXAMPLE
+    Example syntax for running the script or function
+    PS C:\> Example
+#>
     $Headers = @{
-        "Authorization" = "Bearer " + $Key;
+        "Authorization" = "Bearer " + $Token;
         "Content-Type" = "application/json; charset=utf-8";
         "Accept" = "*/*";
         "Accept-Encoding" = "gzip, deflate, br";
@@ -611,25 +445,39 @@ Function Get-ComaeOrganizations (
         "cache-control" = "no-cache"
     }
 
-    # Always on central (api.comae.com)
-    $Uri = "https://api.comae.com/v1/venus/organizations"
+    # Always on central (beta.comae.tech)
+    $Uri = "https://" + $Hostname + "/api/organizations"
 
     $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
     if ($Response.StatusCode -eq 200) {
-        ($Response.Content | ConvertFrom-JSON) | Format-Table -Property _id, name
+        ($Response.Content | ConvertFrom-JSON) | Format-Table -Property id, name
     }
 
 }
 
 Function Get-ComaeCases(
-    [Parameter(Mandatory = $True)] [string] $Key, # Returned by Get-ComaeAPIKey
+    [Parameter(Mandatory = $True)] [string] $Token,
     [Parameter(Mandatory = $False)] [string] $OrganizationId="",
-    [Parameter(Mandatory = $False)] [string] $Hostname="api.comae.com"
+    [Parameter(Mandatory = $False)] [string] $Hostname="beta.comae.tech"
     )
 {
+<#
+.SYNOPSIS
+    What the script does!
+
+.DESCRIPTION
+    A more detailed description of the script
+
+.PARAMETER Param1
+    Details on parameters to be used by the script.
+
+.EXAMPLE
+    Example syntax for running the script or function
+    PS C:\> Example
+#>
     $Headers = @{
-        "Authorization" = "Bearer " + $Key;
+        "Authorization" = "Bearer " + $Token;
         "Content-Type" = "application/json; charset=utf-8";
         "Accept" = "*/*";
         "Accept-Encoding" = "gzip, deflate, br";
@@ -640,12 +488,12 @@ Function Get-ComaeCases(
     $Result = @()
 
     if ([string]::IsNullOrEmpty($OrganizationId)) {
-        $Uri = "https://api.comae.com/v1/venus/organizations"
+        $Uri = "https://" + $Hostname + "/api/organizations"
 
         $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
         if ($Response.StatusCode -eq 200) {
             Foreach ($orgId in ($Response.Content | ConvertFrom-JSON)) {
-                $Uri = "https://" + $Hostname + "/v1/cases?organizationId=" + $orgId._id
+                $Uri = "https://" + $Hostname + "/api/organizations/" + $orgId.id + "/cases"
                 $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
                 if ($Response.StatusCode -eq 200) {
@@ -654,7 +502,7 @@ Function Get-ComaeCases(
             }
         }
     } else {
-        $Uri = "https://" + $Hostname + "/v1/cases?organizationId=" + $organizationId
+        $Uri = "https://" + $Hostname + "/api/organizations/" + $organizationId + "/cases"
 
         $Response = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
@@ -663,5 +511,5 @@ Function Get-ComaeCases(
         }
     }
 
-    $Result | Format-Table -Property organizationId, _id, name, description, creationDate, lastModificationDate, labels
+    $Result | Format-Table -Property organizationId, id, name, description, creationDate, labels
 }

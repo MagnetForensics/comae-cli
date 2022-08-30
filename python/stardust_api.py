@@ -9,7 +9,7 @@
 
 import requests, os, sys, math
 
-# hostname = "api.comae.com"
+# hostname = "beta.comae.tech"
 
 def getApiKey(client_id, client_secret):
     print("[COMAE] Requesting Comae Stardust API key....")
@@ -35,7 +35,7 @@ def getApiKey(client_id, client_secret):
 def getOrganizations(key):
     headers = {"Authorization": "Bearer " + key}
     # Central API
-    url = "https://api.comae.com/v1/venus/organizations"
+    url = "https://beta.comae.tech/v1/venus/organizations"
     res = requests.get(url, headers=headers)
     result_json = res.json()
 
@@ -47,9 +47,9 @@ def getOrganizations(key):
 
     return result_json
 
-def getCases(key, hostname="api.comae.com"):
+def getCases(key, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
-    url = "https://api.comae.com/v1/venus/organizations"
+    url = "https://beta.comae.tech/v1/venus/organizations"
     res = requests.get(url, headers=headers)
     orgs = res.json()
 
@@ -72,7 +72,7 @@ def getCases(key, hostname="api.comae.com"):
 
     return case
 
-def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="api.comae.com"):
+def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
     url = "https://%s/v1/upload/json?organizationId=%s&caseId=%s" % (hostname, organizationId, caseId)
     files = {os.path.basename(filename): open(filename, "rb")}
@@ -80,7 +80,7 @@ def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="api.com
     res = requests.post(url, headers=headers, files=files)
     return res
 
-def sendSnapshotUrlToComae(fileUrl, key, organizationId, caseId, hostname="api.comae.com"):
+def sendSnapshotUrlToComae(fileUrl, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
 
     print("\r[COMAE] Sending snapshot file URL to Comae Stardust...")
@@ -95,7 +95,7 @@ def sendSnapshotUrlToComae(fileUrl, key, organizationId, caseId, hostname="api.c
 
     print("\n[COMAE] Upload complete!")
 
-def sendDumpToComae(filename, key, organizationId, caseId, hostname="api.comae.com"):
+def sendDumpToComae(filename, key, organizationId, caseId, hostname="beta.comae.tech"):
     file = open(filename, "rb")
     fileSize = os.path.getsize(filename)
     bufferSize = 32 * 1024 * 1024
@@ -145,7 +145,7 @@ def sendDumpToComae(filename, key, organizationId, caseId, hostname="api.comae.c
 
     print("\n[COMAE] Upload complete!")
 
-def sendDumpUrlToComae(fileUrl, key, organizationId, caseId, hostname="api.comae.com"):
+def sendDumpUrlToComae(fileUrl, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
 
     print("\r[COMAE] Sending dump file URL to Comae Stardust...")

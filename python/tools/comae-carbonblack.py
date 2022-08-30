@@ -192,7 +192,7 @@ def run_win_dumpit(lr_session, machineName, comae_dir, architecture, comae_id, c
         cmd = ". .\Comae.ps1; " 
         cmd += "$Token = Get-ComaeAPIKey -ClientId {0} -ClientSecret {1} ; ".format(comae_id, comae_secret)
         cmd += "Write-Host $Token; "
-        cmd += "$DumpFile = Send-ComaeDumpFile -Key $Token -Path {0}\\{1} -ItemType Directory -IsCompress;".format(root_dir, run_id)
+        cmd += "$DumpFile = Send-ComaeDumpFile -Token $Token -Path {0}\\{1} -ItemType Directory -IsCompress;".format(root_dir, run_id)
         if delete:
             cmd += "Remove-Item -Path $DumpFile -Force"
 

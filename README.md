@@ -33,19 +33,19 @@ Import-Module .\Comae.ps1
 #### Dump files
 
 ```powershell
-# Generate Key
-$Key = GetComaeAPIKey -ClientId "<Comae-Client-Id>" -ClientSecret "<Comae-Client-Secret>"
+# Generate Token
+Generate the Token from the UI interface of the Comae Platform.
 
 # Create dump file
 New-ComaeDumpFile -Directory "C:\Comae-CrashDumps"
 New-ComaeDumpFile -Directory "C:\Comae-CrashDumps" -IsCompress
 
 # Upload dump file
-Send-ComaeDumpFile -Key $Key -Path "C:\Comae-CrashDumps\FileName.dmp" -ItemType "File"
+Send-ComaeDumpFile -Token $Token -Path "C:\Comae-CrashDumps\FileName.dmp" -ItemType "File"
 
 # Create and upload dump file
-Send-ComaeDumpFile -Key $Key -Path "C:\Comae-CrashDumps" -ItemType "Directory"
-Send-ComaeDumpFile -Key $Key -Path "C:\Comae-CrashDumps" -ItemType "Directory" -IsCompress
+Send-ComaeDumpFile -Token $Token -Path "C:\Comae-CrashDumps" -ItemType "Directory"
+Send-ComaeDumpFile -Token $Token -Path "C:\Comae-CrashDumps" -ItemType "Directory" -IsCompress
 ```
 
 #### Snapshots
@@ -55,10 +55,10 @@ Send-ComaeDumpFile -Key $Key -Path "C:\Comae-CrashDumps" -ItemType "Directory" -
 New-ComaeSnapshot -Directory "C:\Comae-Snapshots"
 
 # Upload snapshot
-Send-ComaeSnapshot -Key $Key -Path "C:\Comae-Snapshots\FileName.json.zip" -ItemType "File"
+Send-ComaeSnapshot -Token $Token -Path "C:\Comae-Snapshots\FileName.json.zip" -ItemType "File"
 
 # Create and upload snapshot
-Send-ComaeSnapshot -Key $Key -Path "C:\Comae-Snapshots" -ItemType "Directory"
+Send-ComaeSnapshot -Token $Token -Path "C:\Comae-Snapshots" -ItemType "Directory"
 
 # Convert dump file to snapshot
 Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directory "C:\Comae-Snapshots"
@@ -70,7 +70,7 @@ Convert-DumpFileToSnapshot -FilePath "C:\Comae-CrashDumps\FileName.dmp" -Directo
 # Convert & Upload Multiple Snapshots
 ```powershell
 Get-ChildItem -Path C:\DumpFiles -File | ForEach-Object { Convert-DumpFileToSnapshot -FilePath $_.FullName -Directory "C:\Snapshots" }
-Get-ChildItem -Path C:\Snapshots -File | ForEach-Object { Send-ComaeSnapshot -Key $Key -Path $_.FullName -ItemType "File" }
+Get-ChildItem -Path C:\Snapshots -File | ForEach-Object { Send-ComaeSnapshot -Token $Token -Path $_.FullName -ItemType "File" }
 ```
 
 ### Source Code

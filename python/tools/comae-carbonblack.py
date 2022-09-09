@@ -162,7 +162,7 @@ def create_directory(lr_session, dir_path):
 
     return True
 
-def run_win_dumpit(lr_session, machineName, comae_dir, architecture, comae_id, comae_secret, compress = True, delete = True):
+def run_win_dumpit(lr_session, machineName, comae_dir, architecture, key, compress = True, delete = True):
     run_id = str(uuid.uuid4())
 
     root_dir = "C:\\Comae"
@@ -190,7 +190,7 @@ def run_win_dumpit(lr_session, machineName, comae_dir, architecture, comae_id, c
     if comae_id and comae_secret:
         # Send it to Comae Cloud
         cmd = ". .\Comae.ps1; " 
-        cmd += "$Token = Get-ComaeAPIKey -ClientId {0} -ClientSecret {1} ; ".format(comae_id, comae_secret)
+        cmd += "$Token = {0} ; ".format(key)
         cmd += "Write-Host $Token; "
         cmd += "$DumpFile = Send-ComaeDumpFile -Token $Token -Path {0}\\{1} -ItemType Directory -IsCompress;".format(root_dir, run_id)
         if delete:
@@ -294,7 +294,7 @@ def main():
 
                 if args.comae_dir:
                     print("\n[+] Comae Directory: " + args.comae_dir)
-                    run_win_dumpit(lr_session, device.name, args.comae_dir, architecture, args.comae_client_id, args.comae_client_secret)
+                    run_win_dumpit(lr_session, device.name, args.comae_dir, architecture, args.comae_api_key)
         elif device.deviceType == "LINUX":
             print("  This yet has to be implemented.")
             with device.lr_session() as lr_session:

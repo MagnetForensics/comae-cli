@@ -232,7 +232,8 @@ if __name__ == "__main__":
         )
     elif args.list_organizations:
         stardust_api.getOrganizations(
-            args.comae_api_key
+            args.comae_api_key,
+            args.comae_hostname
         )
     elif args.dump_it:
         if not util.checkAllArgsExist(args, ['action']):

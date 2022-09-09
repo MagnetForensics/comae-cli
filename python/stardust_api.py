@@ -21,6 +21,9 @@ def getOrganizations(key, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
     # Central API
     url = "https://" + hostname + "/api/organizations"
+
+    print(url)
+
     res = requests.get(url, headers=headers)
     result_json = res.json()
 
@@ -36,16 +39,21 @@ def getOrganizations(key, hostname="beta.comae.tech"):
 def getCases(key, organizationId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
 
-    url = "https://%s/api/cases?organizationId=%s" % (hostname, organizationId)
+    if (organizationId):
+        url = "https://%s/api/cases?organizationId=%s" % (
+            hostname, organizationId)
+    else:
+        url = "https://%s/api/cases" % (
+            hostname)
     res = requests.get(url, headers=headers)
     cases = res.json()
 
-    print("     organizationId           id                      name          description             creationDate             lastModificationDate     labels")
-    print("     --------------           ---                      ----          -----------             ------------             --------------------     ------")
+    print("     organizationId                   id                         name          description             clearanceLevel                 labels")
+    print("     --------------                   ---                        ----          -----------             ------------                  ------")
     for case in cases:
         # print(case)
-        print("     %s %s %-13s %-23s %s %s %s" % (case["organizationId"],
-              case["id"], case["name"], case["description"], case["createdAt"], case["updateAt"], case["labels"]))
+        print("     %s %s %-13s %-23s %s %s" % (case["organizationId"],
+              case["id"], case["name"], case["description"], case["clearanceLevel"], case["labels"]))
 
     print("")
 
@@ -90,7 +98,7 @@ def upload(file, fileSize, hostname, key, chunkNumber, originalname, chunkCount,
         # When it's the last chunk the size can be smaller than the buffer
         chunkSize = len(chunk)
         url = (
-            "https://%s/v1/upload-parts?chunkSize=%d&chunk=%d&originalname=%s&total=%d&organizationId=%s&caseId=%s&ticketId=%s"
+            "https://%s/api/upload-parts?chunkSize=%d&chunk=%d&originalname=%s&total=%d&organizationId=%s&caseId=%s&ticket=%s"
             % (hostname, chunkSize, chunkNumber-1, originalname, chunkCount, organizationId, caseId, ticketId)
         )
 

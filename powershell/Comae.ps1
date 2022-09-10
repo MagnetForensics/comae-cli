@@ -114,20 +114,15 @@ Function Send-ComaeDumpFile(
         .\DumpIt.exe /quiet $Compression /output $DumpFile
     }
     elseif ($ItemType -eq "File") {
-
         $DumpFile = $Path
     }
     else {
-
         Write-Error "Please provide -ItemType parameter as Directory or File."
-
         Return 1
     }
 
     if ((Test-Path $DumpFile) -ne $True) {
-
         Write-Error "Could not find dump file '$DumpFile'"
-
         Return 1
     }
 
@@ -145,111 +140,82 @@ Function Send-ComaeDumpFile(
 #     }
 
     $1MB = 1024 * 1024
+    $ChunkSize = 16 * $1MB
 
-    $BufferSize = 32 * $1MB
-
-    $Buffer = New-Object byte[] $BufferSize
-
+    $Buffer = New-Object byte[] $ChunkSize
     $FileSizeInBytes = (Get-Item $DumpFile).Length
-
     $FileSizeInMB = [Math]::Round($FileSizeInBytes / $1MB)
-
     $CurrentInBytes = 0
+    $ChunkNumber = 0
 
-    $ChunkNumber = 1
-
-    $NumberOfChunks = [Math]::Truncate($FileSizeInBytes / $BufferSize)
-
-    if ($FileSizeInBytes % $BufferSize) {
-
-        $NumberOfChunks += 1
-    }
+    $NumberOfChunks = [Math]::Ceiling($FileSizeInBytes / $ChunkSize)
 
     $FileName = Split-Path $DumpFile -Leaf
-
     $FileNameEscaped = ([uri]::EscapeDataString($FileName)).Replace('%','')
-
-    $UniqueFileId = "$FileSizeInBytes-$FileNameEscaped"
-
-    $Boundary = "---powershellOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZ"
-
-    $Headers = @{
-        "Authorization" = "Bearer " + $Token;
-        "Content-Type" = "multipart/form-data; boundary=$Boundary";
-        "Accept" = "*/*";
-        "Accept-Encoding" = "gzip, deflate, br";
-        "pragma" = "no-cache";
-        "cache-control" = "no-cache"
-    }
-
-$BodyTemplate = @"
---$Boundary
-Content-Disposition: form-data; name="filename"
-
-$FileNameEscaped
---$Boundary
-Content-Disposition: form-data; name=`"file`"; filename=`"$FileNameEscaped`"
-Content-Type: application/octet-stream
-
-{0}
---$Boundary--
-`r`n
-"@
+    $ticketId = [guid]::NewGuid(). ToString()
 
     $GetEncoding = [System.Text.Encoding]::GetEncoding("iso-8859-1")
-
     $FileStream = [System.IO.File]::OpenRead($DumpFile)
 
-    while ($BytesRead = $FileStream.Read($Buffer, 0, $BufferSize)) {
+    $Boundary = -Join ((65..90) + (97..122) | Get-Random -Count 32 | % {[char]$_})
+    $Boundary = "boundary" + $boundary
+        
+    $LF = "`r`n"
+    $BodyTemplate = (
+        "--$Boundary",
+        "Content-Disposition: form-data; name=`"filename`"$LF",
+        $FileNameEscaped,
+        "--$Boundary",
+        "Content-Disposition: form-data; name=`"ticketId`"$LF",
+        $ticketId,
+        "--$Boundary",
+        "Content-Disposition: form-data; name=`"organizationId`"$LF",
+        $organizationId,
+        "--$Boundary",
+        "Content-Disposition: form-data; name=`"caseId`"$LF",
+        $caseId,
+        "--$Boundary",
+        "Content-Disposition: form-data; name=`"file`"; filename=`"$FileNameEscaped`"",
+        "Content-Type: application/octet-stream$LF",
+        "{0}",
+        "--$Boundary--$LF"
+    ) -join $LF
 
+    while ($ChunkNumber -lt $NumberOfChunks) {
+        $BytesRead = $FileStream.Read($Buffer, 0, $ChunkSize)
         $Content = $GetEncoding.GetString($Buffer, 0, $BytesRead)
-
         $Body = $BodyTemplate -f $Content
 
-        $Uri = "https://" + $Hostname + "/v1/upload/dump/chunks?chunkSize=$BytesRead&chunk=$ChunkNumber&id=$UniqueFileId&filename=$FileNameEscaped&chunks=$NumberOfChunks&organizationId=$OrganizationId&&caseId=$CaseId"
+        $rangeStart = $ChunkNumber * $ChunkSize;
+        $rangeEnd = $rangeStart + $BytesRead;
 
-        try {
-
-            $Res = Invoke-WebRequest -Uri $Uri -Method Get -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
-        }
-        catch [System.Net.WebException] {
-
-            do {
-
-                $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
-
-            } while ($Response.StatusCode -ne 200)
-        }
-
-        $CurrentInBytes += $BytesRead
+        $ContentRange = "bytes " + $rangeStart + "-" + $rangeEnd + "/" + $FileSizeInBytes;
+        $Headers = @{
+            "Authorization" = "Bearer " + $Token;
+            "Content-Range" = $ContentRange;
+            "Content-Type" = "multipart/form-data; boundary=$Boundary";
+        };
+            
+        $Uri = "https://" + $Hostname + "/api/upload-parts?chunkSize=$BytesRead&chunk=$ChunkNumber&originalname=$FileNameEscaped&total=$NumberOfChunks&organizationId=$OrganizationId&caseId=$CaseId&ticket=$ticketId"
 
         $CurrentInMB = [Math]::Round($CurrentInBytes / $1MB)
+        Write-Progress -Activity "Uploading $DumpFile..." -Status "$CurrentInMB MB / $FileSizeInMB MB" -PercentComplete (($CurrentInBytes / $FileSizeInBytes) * 100)        
 
+        do {
+            $Response = try {
+                (Invoke-WebRequest -Uri $Uri -Headers $Headers -Method Post -Body $Body -TimeoutSec 86400 -UseBasicParsing).BaseResponse
+            } catch [System.Net.WebException] { 
+                Write-Host "An exception was caught: $($_.Exception.Message)"
+                $_.Exception.Response
+            }
+        } while ($Response.StatusCode -ne 200)
+
+        $CurrentInBytes += $BytesRead
+        $CurrentInMB = [Math]::Round($CurrentInBytes / $1MB)
         $ChunkNumber += 1
 
         Write-Progress -Activity "Uploading $DumpFile..." -Status "$CurrentInMB MB / $FileSizeInMB MB" -PercentComplete (($CurrentInBytes / $FileSizeInBytes) * 100)
     }
-
-    $Uri = "https://" + $Hostname + "/v1/upload/dump/completed"
-
-    $Body = @{
-        "id" = "$UniqueFileId";
-        "filename" = "$FileNameEscaped";
-        "chunks" = $NumberOfChunks
-    }
-
-    $Headers = @{
-        "Authorization" = "Bearer " + $Key;
-        "Content-Type" = "application/json; charset=utf-8";
-        "Accept" = "*/*";
-        "Accept-Encoding" = "gzip, deflate, br";
-        "pragma" = "no-cache";
-        "cache-control" = "no-cache"
-    }
-
-    $Body = $Body | ConvertTo-Json
-
-    $Response = Invoke-WebRequest -Uri $Uri -Method Post -Body $Body -Headers $Headers -TimeoutSec 86400 -UseBasicParsing
 
     $FileStream.Close()
 

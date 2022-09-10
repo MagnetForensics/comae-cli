@@ -86,7 +86,7 @@ def sendSnapshotUrlToComae(fileUrl, key, organizationId, caseId, hostname="beta.
 
 
 def upload(file, fileSize, hostname, key, chunkNumber, originalname, chunkCount, organizationId, caseId, ticketId, bufferSize, offset, retryCount):
-    for chunkNumber in range(chunkNumber, chunkCount + 1):
+    for chunkNumber in range(chunkNumber, chunkCount):
         # '\033[1A' moves the cursor up one line, because passing `end=""` to print
         # to strip the newline doesn't want to work here on python2
         status_string = "\r[COMAE] Uploading %d / %d chunks \033[1A" % (
@@ -99,13 +99,13 @@ def upload(file, fileSize, hostname, key, chunkNumber, originalname, chunkCount,
         chunkSize = len(chunk)
         url = (
             "https://%s/api/upload-parts?chunkSize=%d&chunk=%d&originalname=%s&total=%d&organizationId=%s&caseId=%s&ticket=%s"
-            % (hostname, chunkSize, chunkNumber-1, originalname, chunkCount, organizationId, caseId, ticketId)
+            % (hostname, chunkSize, chunkNumber, originalname, chunkCount, organizationId, caseId, ticketId)
         )
 
         contentRange = (
             "bytes %d-%d/%d"
-            % (chunkNumber * chunkSize,
-               min(fileSize, (chunkNumber+1)*chunkSize),
+            % (chunkNumber * bufferSize,
+               min(fileSize, (chunkNumber+1)*bufferSize),
                fileSize)
         )
 
@@ -139,14 +139,14 @@ def upload(file, fileSize, hostname, key, chunkNumber, originalname, chunkCount,
 def sendDumpToComae(filename, key, organizationId, caseId, hostname="beta.comae.tech"):
     file = open(filename, "rb")
     fileSize = os.path.getsize(filename)
-    bufferSize = 32 * 1024 * 1024
+    bufferSize = 16 * 1024 * 1024
     chunkCount = int(math.ceil(fileSize / bufferSize))
     ticketId = uuid.uuid4()
     originalname = os.path.basename(filename)
 
     offset = 0
 
-    upload(file=file, fileSize=fileSize, hostname=hostname, key=key, chunkNumber=1, originalname=originalname, chunkCount=chunkCount,
+    upload(file=file, fileSize=fileSize, hostname=hostname, key=key, chunkNumber=0, originalname=originalname, chunkCount=chunkCount,
            organizationId=organizationId, caseId=caseId, ticketId=ticketId, bufferSize=bufferSize, offset=offset, retryCount=0)
 
     print("\n[COMAE] Upload complete!")

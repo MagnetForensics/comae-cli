@@ -16,22 +16,20 @@ if (Test-Path -Path Comae-Toolkit) {
     Remove-Item Comae-Toolkit\* -Force -Recurse
 }
 
-$postParams = @{token=$Token}
-$Uri = "https://" + $Hostname + "/download"
-Invoke-WebRequest -Uri $Uri -Method POST -OutFile Comae-Toolkit.zip -Body $postParams
+$Headers = @{
+    "Authorization" = "Bearer " + $Token;
+}
+$Uri = "https://" + $Hostname + "/api/download"
+Invoke-WebRequest -Uri $Uri -Method GET -OutFile Comae-Toolkit.zip -Headers $Headers
 
 $rootDir = $pwd
 
 if (Test-Path -Path Comae-Toolkit.zip) {
-    Expand-Archive -Path Comae-Toolkit.zip
-
-    $arch = "x64"
-    if ($env:Processor_Architecture -eq "x86") { $arch = "x86" }
-    if ($env:Processor_ArchiteW6432 -eq "ARM64") { $arch = "ARM64" }
-
-    Set-Location -Path  ".\Comae-Toolkit\$arch\"
-    . .\Comae.ps1
-    Send-ComaeDumpFile -Token $Token -Path $rootDir\Dumps -ItemType Directory -IsCompress -Hostname $Hostname -OrganizationId $OrganizationId -CaseId $CaseId
+    Expand-Archive -Path Comae-Toolkit.zip -Force
+    Set-Location -Path  ".\Comae-Toolkit"
+    Import-Module .\Comae.psm1
+    $DumpFile = New-ComaeDumpFile -Directory $rootDir\Dumps -IsCompress
+    Send-ComaeDumpFile -Token $Token -Path $DumpFile -ItemType File -Hostname $Hostname -OrganizationId $OrganizationId -CaseId $CaseId
 
     Set-Location $rootDir
     # Clean everything.

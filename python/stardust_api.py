@@ -57,7 +57,7 @@ def getCases(key, organizationId, hostname="beta.comae.tech"):
 
     print("")
 
-
+### TODO
 def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
     url = "https://%s/v1/upload-json?organizationId=%s&caseId=%s" % (
@@ -67,7 +67,7 @@ def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="beta.co
     res = requests.post(url, headers=headers, files=files)
     return res
 
-
+### TODO
 def sendSnapshotUrlToComae(fileUrl, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
 
@@ -151,7 +151,7 @@ def sendDumpToComae(filename, key, organizationId, caseId, hostname="beta.comae.
 
     print("\n[COMAE] Upload complete!")
 
-
+### TODO
 def sendDumpUrlToComae(fileUrl, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
 

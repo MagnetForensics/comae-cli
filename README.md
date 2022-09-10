@@ -69,14 +69,15 @@ You can use the following cmdlet to find out all the cmdlets for your environmen
 Get-Command *Comae*
 ```
 
-## Contribute Code or Provide Feedback
+# Contribute Code or Provide Feedback
 
 If you encounter any bugs with the library please file an issue in the [Issues](https://github.com/comaeio/comae-cli/issues) section of the project.
 
 # Learn More
 
-* 👩‍💻 [Comae Resources Center](https://github.com/comaeio/)
-* 👩‍💻 Join us via [Magnet IdeaLab](http://magnetidealab.com). ✨✨
+* 👩‍💻 [Comae Resources Center](https://github.com/comaeio/). ✨
+* 👩‍💻 [Comae Documentation Center](https://help.comae.tech/). ✨
+* 👩‍💻 Join us via [Magnet IdeaLab](http://magnetidealab.com). ✨
 
 ---
 _Contact [help@comae.com](mailto:help@comae.com) with any additional questions or comments._

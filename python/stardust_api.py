@@ -57,7 +57,6 @@ def getCases(key, organizationId, hostname="beta.comae.tech"):
 
     print("")
 
-### TODO
 def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
     url = "https://%s/api/upload-json?organizationId=%s&caseId=%s" % (

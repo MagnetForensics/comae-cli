@@ -60,7 +60,7 @@ def getCases(key, organizationId, hostname="beta.comae.tech"):
 ### TODO
 def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="beta.comae.tech"):
     headers = {"Authorization": "Bearer " + key}
-    url = "https://%s/v1/upload-json?organizationId=%s&caseId=%s" % (
+    url = "https://%s/api/upload-json?organizationId=%s&caseId=%s" % (
         hostname, organizationId, caseId)
     files = {'file': open(filename, "rb")}
     print("\r[COMAE] Uploading JSON archive to Comae Stardust...")

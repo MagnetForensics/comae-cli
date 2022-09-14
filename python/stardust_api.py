@@ -62,7 +62,7 @@ def sendSnapshotToComae(filename, key, organizationId, caseId, hostname="beta.co
     headers = {"Authorization": "Bearer " + key}
     url = "https://%s/v1/upload-json?organizationId=%s&caseId=%s" % (
         hostname, organizationId, caseId)
-    files = {os.path.basename(filename): open(filename, "rb")}
+    files = {'file': open(filename, "rb")}
     print("\r[COMAE] Uploading JSON archive to Comae Stardust...")
     res = requests.post(url, headers=headers, files=files)
     return res

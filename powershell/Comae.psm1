@@ -25,7 +25,7 @@ Function Get-ComaeToolkitPath(
 {
     $arch = "x64"
     if ($env:Processor_Architecture -eq "x86") { $arch = "x86" }
-    if ($env:Processor_ArchiteW6432 -eq "ARM64") { $arch = "ARM64" }
+    if ($env:PROCESSOR_IDENTIFIER.StartsWith("ARM")) { $arch = "ARM64" }
 
     $RootPath = $PSScriptRoot + "\" + $arch;
     $DumpItPath = $RootPath + "\DumpIt.exe"
@@ -69,7 +69,7 @@ Function New-ComaeDumpFile(
         $out = New-Item $Directory -ItemType "Directory"
     }
 
-    if (Test-Administrator -ne $True) {
+    if ((Test-Administrator) -ne $True) {
         Write-Error "This command requires administrator privileges."
         Return 1
     }
@@ -81,11 +81,11 @@ Function New-ComaeDumpFile(
 
     if ($IsCompress) {
         $Extension = "zdmp"
-        $Compression = "/compress"
+        $Compression = "/COMPRESS"
     }
     else {
         $Extension = "dmp"
-        $Compression = ""
+        $Compression = "/NOCOMPRESS"
     }
 
     $DumpFile = "$Directory\$env:COMPUTERNAME-$Date-$Time.$Extension"
